@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="debug" default="false"/>
+  <arg name="paused" value="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="headless" value="true"/>
+  
+  <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="headless" value="$(arg headless)"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="debug" value="false"/>
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="world_name" value="$(find op3_gazebo)/worlds/empty.world"/>
+    <arg name="verbose" value="true"/>
+  </include>
+
+  <!-- Load the URDF into the ROS Parameter Server -->
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find op3_description)/urdf/robotis_op3.urdf.xacro'" />
+
+  <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
+  <node pkg="gazebo_ros" type="spawn_model" name="urdf_spawner" respawn="false" output="screen"
+        args="-urdf -model robotis_op3 -z 0.285 -param robot_description"/>
+
+  <!-- ros_control robotis humanoid launch file -->
+  <include file="$(find op3_gazebo)/launch/position_controller.launch" />
+</launch>
