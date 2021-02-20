@@ -43,3 +43,27 @@ controller_names = [
     "r_sho_pitch_position",
     "r_sho_roll_position"
 ]
+
+links = [
+    "robotis_op3::body_link",
+    "robotis_op3::head_pan_link",
+    "robotis_op3::head_tilt_link",
+    "robotis_op3::l_hip_yaw_link",
+    "robotis_op3::l_hip_roll_link",
+    "robotis_op3::l_hip_pitch_link",
+    "robotis_op3::l_knee_link",
+    "robotis_op3::l_ank_pitch_link",
+    "robotis_op3::l_ank_roll_link",
+    "robotis_op3::l_sho_pitch_link",
+    "robotis_op3::l_sho_roll_link",
+    "robotis_op3::l_el_link",
+    "robotis_op3::r_hip_yaw_link",
+    "robotis_op3::r_hip_roll_link",
+    "robotis_op3::r_hip_pitch_link",
+    "robotis_op3::r_knee_link",
+    "robotis_op3::r_ank_pitch_link",
+    "robotis_op3::r_ank_roll_link",
+    "robotis_op3::r_sho_pitch_link",
+    "robotis_op3::r_sho_roll_link",
+    "robotis_op3::r_el_link",
+]

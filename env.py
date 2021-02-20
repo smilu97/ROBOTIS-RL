@@ -4,7 +4,9 @@ import subprocess
 import sys
 import rospy
 import op3
+import time
 
+from ros import RosController
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64
 from control_msgs.msg import JointControllerState
@@ -14,118 +16,62 @@ from std_srvs.srv import Empty
 
 class Environment:
     def __init__(self, launchfile):
-        # self.last_clock_msg = Clock()
-        ros_path = os.path.dirname(subprocess.check_output(["which", "roscore"]))
-        self._roslaunch = subprocess.Popen([
-            sys.executable,
-            os.path.join(ros_path, b"roslaunch"),
-            launchfile
-        ])
-        rospy.init_node('gym', anonymous=True)
-
-        self.publishers = [rospy.Publisher(topic, Float64, queue_size=2) for topic in op3.command_topics]
-        self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
-        self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
-        self.listControllers = rospy.ServiceProxy('/robotis_op3/controller_manager/list_controllers', ListControllers)
-        self.reset_proxy = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
-        self.prev_action = np.zeros(20)
-
-    def scan_data(self):
-        while True:
-            try:
-                data = rospy.wait_for_message("/gazebo/link_states", LinkStates, timeout=5)
-                if data is not None:
-                    return data
-            except:
-                pass
-    
-    def supress_action(self, action):
-        if self.prev_action is None:
-            return action
-        prev = np.array(self.prev_action)
-        curr = np.array(action)
-        delta = curr - prev
-
-        max_speed = 0.05
-        delta = np.minimum(delta, max_speed)
-        delta = np.maximum(delta, -max_speed)
-        supressed_action = prev + delta
-
-        self.prev_action = supressed_action
-
-        return supressed_action
+        self.ros = RosController(launchfile)
+        self.target_pos = np.zeros(len(op3.controller_names))
     
     def calculate_observation(self, data):
-        names = data.name
-        # - robotis_op3::body_link
-        # - robotis_op3::head_pan_link
-        # - robotis_op3::head_tilt_link
+        if data is None:
+            return np.zeros(3 * len(op3.links)), False
+        # Order positions by name
+        pose_dict = {}
         for index, name in enumerate(data.name):
-            if name != "robotis_op3::body_link": continue
-            p = data.pose[index].position
-            return (p.x, p.y, p.z), False
-        return None, False
-    
-    def _unpause(self):
-        rospy.wait_for_service('/gazebo/unpause_physics')
-        try:
-            self.unpause()
-        except (rospy.ServiceException) as e:
-            print ("/gazebo/unpause_physics service call failed")
-    
-    def _pause(self):
-        rospy.wait_for_service('/gazebo/pause_physics')
-        try:
-            #resp_pause = pause.call()
-            self.pause()
-        except (rospy.ServiceException) as e:
-            print ("/gazebo/pause_physics service call failed")
-    
-    def _reset(self):
-        # Resets the state of the environment and returns an initial observation.
-        rospy.wait_for_service('/gazebo/reset_simulation')
-        try:
-            #reset_proxy.call()
-            self.reset_proxy()
-        except (rospy.ServiceException) as e:
-            print ("/gazebo/reset_simulation service call failed")
+            pose_dict[name] = data.pose[index].position
+
+        # Collect position numbers in 1-D array
+        state = np.zeros(3 * len(op3.links))
+        for index, name in enumerate(op3.links):
+            p = pose_dict.get(name)
+            if p is not None:
+                state[index * 3 + 0] = p.x
+                state[index * 3 + 1] = p.y
+                state[index * 3 + 2] = p.z
         
+        # Determine if robot fell down
+        done = state[2] < 0.16
+        
+        return state, done
+        
+    def apply_action(self, action):
+        diff = 0.001
+        next_pos = np.array(self.target_pos)
+        for i in range(len(op3.controller_names)):
+            if action[i] == 1:
+                next_pos[i] += diff
+            elif action[i] == 2:
+                next_pos[i] -= diff
+        next_pos = np.maximum(-0.5, next_pos)
+        next_pos = np.minimum( 0.5, next_pos)
+        self.ros.publish_action(next_pos)
+        self.target_pos = next_pos
+
     def step(self, action):
-        self._unpause()
+        # self.ros.unpause()
 
-        action = self.supress_action(action)
-        for index, pub in enumerate(self.publishers):
-            value = Float64()
-            value.data = action[index]
-            pub.publish(value)
+        for _ in range(10):
+            self.apply_action(action)
 
-        data = self.scan_data()
-        self._pause()
+        data = self.ros.get_link_states()
+        # self.ros.pause()
         state, done = self.calculate_observation(data)
-        reward = 0
+        reward = -1000 if done else state[2]
         return np.asarray(state), reward, done, {}
-    
-    def wait_for_controllers(self):
-        rospy.wait_for_service('/robotis_op3/controller_manager/list_controllers')
-        ctrls = None
-        while True:
-            ctrls = self.listControllers().controller
-            ctrl_names = [x.name for x in ctrls]
-            flag = True
-            for name in op3.controller_names:
-                if name not in ctrl_names:
-                    flag = False
-                    break
-            if flag: break
-        print 'Checked all controllers available'
-        for ctrl in ctrls:
-            print ctrl.name, ctrl.state
 
     def reset(self):
-        self.wait_for_controllers()
-        self._reset()
-        self._unpause()
-        data = self.scan_data()
-        self._pause()
-        state,done = self.calculate_observation(data)
+        self.target_pos = np.zeros(len(op3.controller_names))
+        self.ros.wait_for_controllers()
+        self.ros.reset()
+        self.ros.unpause()
+        data = self.ros.get_link_states()
+        # self.ros.pause()
+        state, done = self.calculate_observation(data)
         return np.asarray(state)
