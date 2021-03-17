@@ -109,8 +109,6 @@ if __name__ == '__main__':
             qValues = deepQ.getQValues(observation)
             action = deepQ.selectActions(qValues, explorationRate)
 
-            print('action:', action)
-
             newObservation, reward, done, info = env.step(action)
 
             cumulated_reward += reward
@@ -140,15 +138,15 @@ if __name__ == '__main__':
                     h, m = divmod(m, 60)
                     print ("EP " + str(epoch) + " - " + format(episode_step + 1) + "/" + str(steps) + " Episode steps - last100 Steps : " + str((sum(last100Scores) / len(last100Scores))) + " - Cumulated R: " + str(cumulated_reward) + "   Eps=" + str(round(explorationRate, 2)) + "     Time: %d:%02d:%02d" % (h, m, s))
                     if (epoch)%100==0:
-                        #save model weights and monitoring data every 100 epochs.
+                        # save model weights and monitoring data every 100 epochs.
                         deepQ.saveModel(path+str(epoch)+'.h5')
                         # env._flush()
                         copy_tree(outdir,path+str(epoch))
-                        #save simulation parameters.
+                        # save simulation parameters.
                         parameter_keys = ['epochs','steps','updateTargetNetwork','explorationRate','minibatch_size','learnStart','learningRate','discountFactor','memorySize','network_inputs','network_outputs','network_structure','current_epoch']
                         parameter_values = [epochs, steps, updateTargetNetwork, explorationRate, minibatch_size, learnStart, learningRate, discountFactor, memorySize, network_inputs, network_outputs, network_structure, epoch]
                         parameter_dictionary = dict(zip(parameter_keys, parameter_values))
-                        with open(path+str(epoch)+'.json', 'w') as outfile:
+                        with open(path+str(epoch) + '.json', 'w') as outfile:
                             json.dump(parameter_dictionary, outfile)
 
             stepCounter += 1
@@ -158,7 +156,7 @@ if __name__ == '__main__':
 
             episode_step += 1
 
-        explorationRate *= 0.995 #epsilon decay
+        explorationRate *= 0.995 # epsilon decay
         # explorationRate -= (2.0/epochs)
         explorationRate = max (0.05, explorationRate)
 
