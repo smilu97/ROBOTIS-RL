@@ -6,7 +6,7 @@ import rospy
 import op3
 import time
 
-from ros import RosController
+from op3 import Op3Controller
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64
 from control_msgs.msg import JointControllerState
@@ -16,7 +16,7 @@ from std_srvs.srv import Empty
 
 class Environment:
     def __init__(self, launchfile):
-        self.ros = RosController(launchfile)
+        self.op3 = Op3Controller(launchfile)
         self.target_pos = np.zeros(len(op3.controller_names))
     
     def calculate_observation(self, data):
@@ -42,6 +42,9 @@ class Environment:
         return state, done
         
     def apply_action(self, action):
+        self.op3.publish_action2(action)
+        return
+
         diff = 0.001
         next_pos = np.array(self.target_pos)
         for i in range(len(op3.controller_names)):
@@ -51,27 +54,26 @@ class Environment:
                 next_pos[i] -= diff
         next_pos = np.maximum(-0.5, next_pos)
         next_pos = np.minimum( 0.5, next_pos)
-        self.ros.publish_action(next_pos)
+        self.op3.publish_action(next_pos)
         self.target_pos = next_pos
 
     def step(self, action):
-        # self.ros.unpause()
+        # self.op3.unpause()
 
         for _ in range(10):
             self.apply_action(action)
 
-        data = self.ros.get_link_states()
-        # self.ros.pause()
+        data = self.op3.get_link_states()
+        # self.op3.pause()
         state, done = self.calculate_observation(data)
         reward = -1000 if done else state[2]
         return np.asarray(state), reward, done, {}
 
     def reset(self):
         self.target_pos = np.zeros(len(op3.controller_names))
-        self.ros.wait_for_controllers()
-        self.ros.reset()
-        self.ros.unpause()
-        data = self.ros.get_link_states()
-        # self.ros.pause()
+        self.op3.reset()
+        self.op3.unpause()
+        data = self.op3.get_link_states()
+        # self.op3.pause()
         state, done = self.calculate_observation(data)
         return np.asarray(state)

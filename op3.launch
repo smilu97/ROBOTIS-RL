@@ -1,5 +1,13 @@
 <?xml version="1.0" ?>
 <launch>
+  <param name="gazebo"                   value="true"    type="bool"/>
+  <param name="gazebo_robot_name"        value="robotis_op3"/>
+  
+  <param name="offset_file_path"         value="$(find op3_manager)/config/offset.yaml"/>
+  <param name="robot_file_path"          value="$(find op3_manager)/config/OP3.robot"/>
+  <param name="init_file_path"           value="$(find op3_manager)/config/dxl_init_OP3.yaml"/>
+  <param name="device_name"              value="/dev/ttyUSB0"/>
+
   <arg name="debug" default="false"/>
   <arg name="paused" value="true"/>
   <arg name="gui" default="false"/>
@@ -25,4 +33,8 @@
 
   <!-- ros_control robotis humanoid launch file -->
   <include file="$(find op3_gazebo)/launch/position_controller.launch" />
+  
+  <!-- OP3 Gym -->
+  <arg name="node_start_delay" default="5.0" />
+  <node pkg="op3_gym" type="op3_gym" name="op3_gym" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " />
 </launch>

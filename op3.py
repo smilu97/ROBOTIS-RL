@@ -1,69 +1,98 @@
-command_topics = [
-    "/robotis_op3/head_pan_position/command",
-    "/robotis_op3/head_tilt_position/command",
-    "/robotis_op3/l_ank_pitch_position/command",
-    "/robotis_op3/l_ank_roll_position/command",
-    "/robotis_op3/l_el_position/command",
-    "/robotis_op3/l_hip_pitch_position/command",
-    "/robotis_op3/l_hip_roll_position/command",
-    "/robotis_op3/l_hip_yaw_position/command",
-    "/robotis_op3/l_knee_position/command",
-    "/robotis_op3/l_sho_pitch_position/command",
-    "/robotis_op3/l_sho_roll_position/command",
-    "/robotis_op3/r_ank_pitch_position/command",
-    "/robotis_op3/r_ank_roll_position/command",
-    "/robotis_op3/r_el_position/command",
-    "/robotis_op3/r_hip_pitch_position/command",
-    "/robotis_op3/r_hip_roll_position/command",
-    "/robotis_op3/r_hip_yaw_position/command",
-    "/robotis_op3/r_knee_position/command",
-    "/robotis_op3/r_sho_pitch_position/command",
-    "/robotis_op3/r_sho_roll_position/command"
-]
+import numpy as np
+import os
+import subprocess
+import sys
+import rospy
+import time
 
-controller_names = [
-    "head_pan_position",
-    "head_tilt_position",
-    "l_ank_pitch_position",
-    "l_ank_roll_position",
-    "l_el_position",
-    "l_hip_pitch_position",
-    "l_hip_roll_position",
-    "l_hip_yaw_position",
-    "l_knee_position",
-    "l_sho_pitch_position",
-    "l_sho_roll_position",
-    "r_ank_pitch_position",
-    "r_ank_roll_position",
-    "r_el_position",
-    "r_hip_pitch_position",
-    "r_hip_roll_position",
-    "r_hip_yaw_position",
-    "r_knee_position",
-    "r_sho_pitch_position",
-    "r_sho_roll_position"
-]
+from geometry_msgs.msg import Twist
+from std_msgs.msg import Float64
+from control_msgs.msg import JointControllerState
+from gazebo_msgs.msg import LinkStates
+from controller_manager_msgs.srv import ListControllers
+from robotis_controller_msgs.srv import SetJointModule, SetJointModuleRequest
+from std_srvs.srv import Empty
+from sensor_msgs.msg import JointState, Imu
 
-links = [
-    "robotis_op3::body_link",
-    "robotis_op3::head_pan_link",
-    "robotis_op3::head_tilt_link",
-    "robotis_op3::l_hip_yaw_link",
-    "robotis_op3::l_hip_roll_link",
-    "robotis_op3::l_hip_pitch_link",
-    "robotis_op3::l_knee_link",
-    "robotis_op3::l_ank_pitch_link",
-    "robotis_op3::l_ank_roll_link",
-    "robotis_op3::l_sho_pitch_link",
-    "robotis_op3::l_sho_roll_link",
-    "robotis_op3::l_el_link",
-    "robotis_op3::r_hip_yaw_link",
-    "robotis_op3::r_hip_roll_link",
-    "robotis_op3::r_hip_pitch_link",
-    "robotis_op3::r_knee_link",
-    "robotis_op3::r_ank_pitch_link",
-    "robotis_op3::r_ank_roll_link",
-    "robotis_op3::r_sho_pitch_link",
-    "robotis_op3::r_sho_roll_link",
-    "robotis_op3::r_el_link",
-]
+from op3constant import *
+
+from ros import RosController
+
+class Op3Controller(RosController):
+    def __init__(
+        self,
+        launchfile,
+        subscribe_link_states = True,
+        subscribe_imu = True,
+        subscribe_joint_states = True,
+    ):
+        super(Op3Controller, self).__init__(launchfile)
+
+        self.latest_link_states = None
+        self.latest_imu = None
+        self.latest_joint_states = None
+        self.prev_action = np.zeros(20)
+
+        def link_states_cb(data):
+            self.latest_link_states = data
+        def imu_cb(data):
+            self.latest_imu = data
+        def joint_states_cb(data):
+            self.latest_joint_states = data
+
+        self.publishers = [rospy.Publisher(topic, Float64, queue_size=20) for topic in command_topics]
+        self.link_states_publisher = rospy.Publisher('/robotis/set_joint_states', JointState, queue_size=20)
+        if subscribe_link_states:
+            self.link_states_subscriber = rospy.Subscriber('/gazebo/link_states', LinkStates, link_states_cb, queue_size=10)
+        if subscribe_joint_states:
+            self.joint_states_subscriber = rospy.Subscriber('/robotis/present_joint_states', JointState, joint_states_cb, queue_size=10)
+        if subscribe_imu:
+            self.imu_subscriber = rospy.Subscriber('/robotis_op3/imu', Imu, imu_cb, queue_size=10)
+        self.list_controllers = rospy.ServiceProxy('/robotis_op3/controller_manager/list_controllers', ListControllers)
+        self.reset_direct_motion_srv = rospy.ServiceProxy('/robotis/gym/reset_motion', Empty)
+
+        self.wait_for_controllers()
+
+    def reset(self):
+        self.reset_goal()
+        super(Op3Controller, self).reset()
+
+    def get_link_states(self):
+        return self.latest_link_states
+    
+    def get_imu(self):
+        return self.latest_imu
+    
+    def get_joint_states(self):
+        return self.latest_joint_states
+    
+    def publish_action(self, action):
+        for index, pub in enumerate(self.publishers):
+            value = Float64()
+            value.data = action[index]
+            pub.publish(value)
+    
+    def publish_action2(self, action):
+        state = JointState()
+        state.name = op3_module_names
+        state.position = action[:len(op3_module_names)]
+        self.link_states_publisher.publish(state)
+    
+    def reset_goal(self):
+        state = JointState()
+        state.name = op3_module_names
+        state.position = np.zeros(len(op3_module_names))
+        self.link_states_publisher.publish(state)
+    
+    def wait_for_controllers(self):
+        rospy.wait_for_service('/robotis_op3/controller_manager/list_controllers')
+        ctrls = None
+        while True:
+            ctrls = self.list_controllers().controller
+            ctrl_names = [x.name for x in ctrls]
+            flag = True
+            for name in controller_names:
+                if name not in ctrl_names:
+                    flag = False
+                    break
+            if flag: break

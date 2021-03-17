@@ -13,7 +13,7 @@ from gazebo_msgs.msg import LinkStates
 from controller_manager_msgs.srv import ListControllers
 from std_srvs.srv import Empty
 
-class RosController:
+class RosController(object):
     def __init__(self, launchfile):
         # self.last_clock_msg = Clock()
         ros_path = os.path.dirname(subprocess.check_output(["which", "roscore"]))
@@ -24,27 +24,9 @@ class RosController:
         ])
         rospy.init_node('gym', anonymous=True)
 
-        self.latest_link_states = None
-
-        def link_states_cb(data):
-            self.latest_link_states = data
-
-        self.publishers = [rospy.Publisher(topic, Float64, queue_size=20) for topic in op3.command_topics]
-        self.link_states_subscriber = rospy.Subscriber('/gazebo/link_states', LinkStates, link_states_cb, queue_size=10)
         self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
         self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
-        self.listControllers = rospy.ServiceProxy('/robotis_op3/controller_manager/list_controllers', ListControllers)
         self.reset_proxy = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
-        self.prev_action = np.zeros(20)
-
-    def get_link_states(self):
-        return self.latest_link_states
-    
-    def publish_action(self, action):
-        for index, pub in enumerate(self.publishers):
-            value = Float64()
-            value.data = action[index]
-            pub.publish(value)
     
     def unpause(self):
         rospy.wait_for_service('/gazebo/unpause_physics')
@@ -69,16 +51,3 @@ class RosController:
             self.reset_proxy()
         except (rospy.ServiceException) as e:
             print ("/gazebo/reset_simulation service call failed")
-    
-    def wait_for_controllers(self):
-        rospy.wait_for_service('/robotis_op3/controller_manager/list_controllers')
-        ctrls = None
-        while True:
-            ctrls = self.listControllers().controller
-            ctrl_names = [x.name for x in ctrls]
-            flag = True
-            for name in op3.controller_names:
-                if name not in ctrl_names:
-                    flag = False
-                    break
-            if flag: break
