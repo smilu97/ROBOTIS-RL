@@ -35,6 +35,6 @@
   <include file="$(find op3_gazebo)/launch/position_controller.launch" />
   
   <!-- OP3 Gym -->
-  <arg name="node_start_delay" default="5.0" />
+  <arg name="node_start_delay" default="2.0" />
   <node pkg="op3_gym" type="op3_gym" name="op3_gym" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " />
 </launch>
