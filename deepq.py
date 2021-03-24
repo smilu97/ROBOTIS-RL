@@ -1,6 +1,7 @@
 import random
 
 import numpy as np
+import op3constant as op3c
 from keras import Sequential, optimizers
 from keras.layers import Dense, Activation, LeakyReLU, Dropout
 from keras.models import load_model
@@ -20,7 +21,7 @@ class DeepQ:
             target = reward(s,a) + gamma * max(Q(s'))
 
     """
-    def __init__(self, inputs, outputs, memorySize, discountFactor, learningRate, learnStart):
+    def __init__(self, inputs, outputs, memorySize, discountFactor, learningRate, learnStart, action_spectrum):
         """
         Parameters:
             - inputs: input size
@@ -36,6 +37,7 @@ class DeepQ:
         self.discountFactor = discountFactor
         self.learnStart = learnStart
         self.learningRate = learningRate
+        self.action_spectrum = action_spectrum
 
     def initNetworks(self, hiddenLayers):
         model = self.createModel(self.input_size, self.output_size, hiddenLayers, "relu", self.learningRate)
@@ -159,13 +161,14 @@ class DeepQ:
             return reward + self.discountFactor * self.getMaxQ(qValuesNewState)
 
     def selectActions(self, qValues, explorationRate):
-        return np.array([self.selectAction(qValues[i*3:(i*3+3)], explorationRate) for i in range(20)])
+        b = (2 * self.action_spectrum) + 1
+        return np.array([self.selectAction(qValues[i*b:(i*b+b)], explorationRate) for i in range(len(op3c.op3_module_names))])
 
     # select the action with the highest Q value
     def selectAction(self, qValues, explorationRate):
         rand = random.random()
         if rand < explorationRate :
-            action = np.random.randint(0, 3)
+            action = np.random.randint(0, qValues.shape[0])
         else :
             action = self.getMaxIndex(qValues)
         return action
@@ -204,12 +207,13 @@ class DeepQ:
             return self.memory.getMemory(self.memory.getCurrentSize() - 1)
 
     def learnOnMiniBatch(self, miniBatchSize, useTargetNetwork=True):
+        b = self.action_spectrum * 2 + 1
         # Do not learn until we've got self.learnStart samples
         if self.memory.getCurrentSize() > self.learnStart:
             # learn in batches of 128
             miniBatch = self.memory.getMiniBatch(miniBatchSize)
             X_batch = np.empty((0,self.input_size), dtype = np.float64)
-            Y_batch = np    .empty((0,self.output_size), dtype = np.float64)
+            Y_batch = np.empty((0,self.output_size), dtype = np.float64)
             for sample in miniBatch:
                 isFinal = sample['isFinal']
                 state = sample['state']
@@ -226,7 +230,7 @@ class DeepQ:
 
                 X_batch = np.append(X_batch, np.array([state.copy()]), axis=0)
                 Y_sample = qValues.copy()
-                Y_sample[action] = targetValue
+                Y_sample[action + np.arange(action.shape[0]) * b] = targetValue
                 Y_batch = np.append(Y_batch, np.array([Y_sample]), axis=0)
                 if isFinal:
                     X_batch = np.append(X_batch, np.array([newState.copy()]), axis=0)

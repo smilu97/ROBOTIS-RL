@@ -7,7 +7,7 @@ import op3
 import time
 import op3constant as op3c
 
-from op3 import Op3Controller
+from op3 import Op3Controller, serialize_imu
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64
 from control_msgs.msg import JointControllerState
@@ -16,30 +16,13 @@ from controller_manager_msgs.srv import ListControllers
 from std_srvs.srv import Empty
 from sensor_msgs.msg import JointState, Imu
 
-def serialize_imu(data):
-    '''
-    Serialize sensor_msgs/Imu into np.array(float32[10])
-    '''
-    if data is None:
-        return np.zeros(10)
-
-    ot  = data.orientation # geometry_msgs/Quarternion
-    av  = data.angular_velocity # geometry_msgs/Vector3
-    la  = data.linear_acceleration # geometry_msgs/Vector3
-
-    return np.array([
-        ot.x,ot.y,ot.z,ot.w,
-        av.x,av.y,av.z,
-        la.x,la.y,la.z,
-    ], dtype=np.float32) # len: 10
-
-class Environment:
+class Op3Environment(object):
     def __init__(self, launchfile):
         self.op3 = Op3Controller(launchfile)
         self.target_pos = np.zeros(len(op3.controller_names))
         self.prev_x = 0.0
         self.observation_size = 3*len(op3c.op3_module_names)+10
-        self.action_size = op3c.op3_module_names
+        self.action_size = len(op3c.op3_module_names)
     
     def get_observation(self):
         joint_states = self.op3.get_joint_states()
@@ -59,15 +42,24 @@ class Environment:
         
         return state
     
+    def get_current_x(self):
+        target = 'robotis_op3::body_link'
+        states = self.op3.get_link_states()
+        for index in range(len(states.name)):
+            if states.name[index] == target:
+                return states.pose[index].position.x
+        return 0.0
+        return self.op3.get_imu().orientation.x
+    
     def get_reward(self):
-        x = self.op3.get_imu().orientation.x
+        x = self.get_current_x()
         reward = x - self.prev_x
         self.prev_x = x
         return reward
     
     def get_done(self):
         target = 'robotis_op3::body_link'
-        thres = 0.1
+        thres = 0.2
 
         link_states = self.op3.get_link_states()
         for index, name in enumerate(link_states.name):
@@ -108,4 +100,8 @@ class Environment:
         self.op3.reset()
         self.op3.unpause()
         # self.op3.pause()
+        while True:
+            if self.op3.updated_imu:
+                break
+            time.sleep(0.01)
         return self.get_observation()

@@ -18,6 +18,23 @@ from op3constant import *
 
 from ros import RosController
 
+def serialize_imu(data):
+    '''
+    Serialize sensor_msgs/Imu into np.array(float32[10])
+    '''
+    if data is None:
+        return np.zeros(10)
+
+    ot  = data.orientation # geometry_msgs/Quarternion
+    av  = data.angular_velocity # geometry_msgs/Vector3
+    la  = data.linear_acceleration # geometry_msgs/Vector3
+
+    return np.array([
+        ot.x,ot.y,ot.z,ot.w,
+        av.x,av.y,av.z,
+        la.x,la.y,la.z,
+    ], dtype=np.float32) # len: 10
+
 class Op3Controller(RosController):
     def __init__(
         self,
@@ -32,10 +49,12 @@ class Op3Controller(RosController):
         self.latest_imu = None
         self.latest_joint_states = None
         self.prev_action = np.zeros(20)
+        self.updated_imu = False
 
         def link_states_cb(data):
             self.latest_link_states = data
         def imu_cb(data):
+            self.updated_imu = True
             self.latest_imu = data
         def joint_states_cb(data):
             self.latest_joint_states = data
@@ -55,6 +74,7 @@ class Op3Controller(RosController):
 
     def reset(self):
         self.reset_goal()
+        self.updated_imu = False
         super(Op3Controller, self).reset()
 
     def get_link_states(self):
