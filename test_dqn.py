@@ -1,14 +1,20 @@
 #!/usr/bin/env python
 
+'''
+Double DQN
+Policy gradient & actor-critic
+'''
+
 import time
 from distutils.dir_util import copy_tree
+import op3constant as op3c
 import os
 import json
 import liveplot
 import deepq
 import numpy as np
 
-from env import Environment
+from logistic_env import Op3LogisticEnvrionment
 
 launchfile = '/home/smilu97/robotis/op3.launch'
 
@@ -24,10 +30,13 @@ def clear_monitor_files(training_dir):
         os.unlink(file)
 
 if __name__ == '__main__':
-    env = Environment(launchfile)
+    env = Op3LogisticEnvrionment(launchfile)
     outdir = '/tmp/gazebo_gym_experiments/'
     path = '/tmp/turtle_c2_dqn_ep'
     plotter = liveplot.LivePlot(outdir)
+
+    action_spectrum = 2
+    action_width = 2 * action_spectrum + 1
 
     continue_execution = False
     #fill this if continue_execution=True
@@ -51,11 +60,11 @@ if __name__ == '__main__':
         discountFactor = 0.99
         memorySize = 1000000
         network_inputs = 67
-        network_outputs = 19
+        network_outputs = len(op3c.op3_module_names) * action_width
         network_structure = [300,300]
         current_epoch = 0
 
-        deepQ = deepq.DeepQ(network_inputs, network_outputs, memorySize, discountFactor, learningRate, learnStart)
+        deepQ = deepq.DeepQ(network_inputs, network_outputs, memorySize, discountFactor, learningRate, learnStart, action_spectrum)
         deepQ.initNetworks(network_structure)
     else:
         #Load weights, monitor info and parameter info.
@@ -76,7 +85,7 @@ if __name__ == '__main__':
             network_structure = d.get('network_structure')
             current_epoch = d.get('current_epoch')
 
-        deepQ = deepq.DeepQ(network_inputs, network_outputs, memorySize, discountFactor, learningRate, learnStart)
+        deepQ = deepq.DeepQ(network_inputs, network_outputs, memorySize, discountFactor, learningRate, learnStart, action_spectrum)
         deepQ.initNetworks(network_structure)
 
         deepQ.loadWeights(weights_path)
@@ -98,6 +107,7 @@ if __name__ == '__main__':
     #start iterating from 'current epoch'.
     for epoch in xrange(current_epoch+1, epochs+1, 1):
         observation = env.reset()
+        time.sleep(0.1)
         cumulated_reward = 0
         done = False
         episode_step = 0
@@ -141,7 +151,9 @@ if __name__ == '__main__':
                         # save model weights and monitoring data every 100 epochs.
                         deepQ.saveModel(path+str(epoch)+'.h5')
                         # env._flush()
-                        copy_tree(outdir,path+str(epoch))
+                        try:
+                            copy_tree(outdir, path+str(epoch))
+                        except: pass
                         # save simulation parameters.
                         parameter_keys = ['epochs','steps','updateTargetNetwork','explorationRate','minibatch_size','learnStart','learningRate','discountFactor','memorySize','network_inputs','network_outputs','network_structure','current_epoch']
                         parameter_values = [epochs, steps, updateTargetNetwork, explorationRate, minibatch_size, learnStart, learningRate, discountFactor, memorySize, network_inputs, network_outputs, network_structure, epoch]
@@ -160,7 +172,7 @@ if __name__ == '__main__':
         # explorationRate -= (2.0/epochs)
         explorationRate = max (0.05, explorationRate)
 
-        if epoch % 100 == 0:
-            plotter.plot(env)
+        # if epoch % 100 == 0:
+        #     plotter.plot(env)
 
     env.close()
