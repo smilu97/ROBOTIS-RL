@@ -12,8 +12,8 @@ def main():
     epochs = 1000
     time.sleep(5)
     episode = 1
-    for num_epoch in xrange(epochs):
-        print 'epsiode {} start'.format(episode)
+    for num_epoch in range(epochs):
+        print('epsiode {} start'.format(episode))
         env.reset()
         while True:
             action = 1.0 * (np.random.rand(env.action_size) - 0.5)

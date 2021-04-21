@@ -8,7 +8,7 @@ def main():
     r.wait_for_controllers()
     while True:
         r.reset()
-        for _ in xrange(1000):
+        for _ in range(1000):
             action = 0.2 * (np.random.rand(20) - 0.5)
             r.unpause()
             r.publish_action(action)
