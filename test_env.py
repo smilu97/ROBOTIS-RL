@@ -8,17 +8,23 @@ from logistic_env import Op3LogisticEnvrionment
 launchfile = '/home/smilu97/robotis/op3.launch'
 
 def main():
-    env = Op3LogisticEnvrionment(launchfile, speed=0.1)
+    # env = Op3LogisticEnvrionment(launchfile, speed=0.1)
+    env = Op3LinearEnvironment(launchfile)
     epochs = 1000
     time.sleep(5)
     episode = 1
     for num_epoch in range(epochs):
         print('epsiode {} start'.format(episode))
         env.reset()
+        i = 0
+        T = 200
         while True:
-            action = 1.0 * (np.random.rand(env.action_size) - 0.5)
+            # action = np.zeros(env.action_size)
+            # action[(i // T) % env.action_size] = 0.5 * np.sin(2 * np.pi * (i % T) / T)
+            action = 0.8 * (np.random.rand(env.action_size) - 0.5)
             state, reward, done, info = env.step(action)
             time.sleep(1.0 / 30)
+            i += 1
             if done: break
         episode += 1
 

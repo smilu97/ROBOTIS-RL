@@ -95,7 +95,10 @@ class Op3Controller(RosController):
     def publish_action2(self, action):
         state = JointState()
         state.name = op3_module_names
-        state.position = action[:len(op3_module_names)]
+        sl = len(op3_module_names)
+        state.position = action[:sl]
+        # state.velocity = 0.0001 * np.ones((sl,))
+        # state.effort = 0.01 * np.ones((sl,))
         self.link_states_publisher.publish(state)
     
     def reset_goal(self):
