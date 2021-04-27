@@ -59,7 +59,7 @@ class Op3Controller(RosController):
         def joint_states_cb(data):
             self.latest_joint_states = data
 
-        self.publishers = [rospy.Publisher(topic, Float64, queue_size=20) for topic in command_topics]
+        self.publishers = [rospy.Publisher(topic, Float64, queue_size=4) for topic in position_topics]
         self.link_states_publisher = rospy.Publisher('/robotis/set_joint_states', JointState, queue_size=20)
         if subscribe_link_states:
             self.link_states_subscriber = rospy.Subscriber('/gazebo/link_states', LinkStates, link_states_cb, queue_size=10)

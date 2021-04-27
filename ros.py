@@ -42,7 +42,8 @@ class RosController(object):
 
         self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
         self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
-        self.reset_proxy = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
+        self.reset_proxy = rospy.ServiceProxy('/gazebo/reset_world', Empty)
+        self.reset_sim_proxy = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
     
     def unpause(self):
         rospy.wait_for_service('/gazebo/unpause_physics')
@@ -59,12 +60,23 @@ class RosController(object):
         except (rospy.ServiceException) as e:
             print ("/gazebo/pause_physics service call failed")
     
-    def reset(self):
-        self.pause()
-        # Resets the state of the environment and returns an initial observation.
-        rospy.wait_for_service('/gazebo/reset_simulation')
+    def reset_world(self):
+        rospy.wait_for_service('/gazebo/reset_world')
         try:
             #reset_proxy.call()
             self.reset_proxy()
         except (rospy.ServiceException) as e:
+            print ("/gazebo/reset_world service call failed")
+    
+    def reset_sim(self):
+        rospy.wait_for_service('/gazebo/reset_simulation')
+        try:
+            #reset_proxy.call()
+            self.reset_sim_proxy()
+        except (rospy.ServiceException) as e:
             print ("/gazebo/reset_simulation service call failed")
+
+    def reset(self):
+        # self.pause()
+        self.reset_sim()
+        self.reset_world()

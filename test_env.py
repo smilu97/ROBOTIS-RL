@@ -21,7 +21,7 @@ def main():
         while True:
             # action = np.zeros(env.action_size)
             # action[(i // T) % env.action_size] = 0.5 * np.sin(2 * np.pi * (i % T) / T)
-            action = 0.8 * (np.random.rand(env.action_size) - 0.5)
+            action = 1.2 * (np.random.rand(env.action_size) - 0.5)
             state, reward, done, info = env.step(action)
             time.sleep(1.0 / 30)
             i += 1

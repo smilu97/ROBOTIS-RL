@@ -24,9 +24,10 @@ class Op3Environment(gym.Env):
         self.prev_x = 0.0
         self.observation_size = 3*len(op3c.op3_module_names)+10
         self.action_size = len(op3c.op3_module_names)
+        self.pause_sim = False
 
         sl = len(op3c.op3_module_names)
-        self.action_space = gym.spaces.Box(low=0.5, high=0.5, shape=(sl,), dtype=np.float32)
+        self.action_space = gym.spaces.Box(low=-1.2, high=1.2, shape=(sl,), dtype=np.float32)
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(3*sl+10,), dtype=np.float32)
     
     def get_observation(self):
@@ -60,7 +61,7 @@ class Op3Environment(gym.Env):
         x = self.get_current_x()
         reward = x - self.prev_x
         self.prev_x = x
-        return reward
+        return reward + 0.01
     
     def get_done(self):
         target = 'robotis_op3::body_link'
@@ -90,9 +91,9 @@ class Op3Environment(gym.Env):
         self.target_pos = next_pos
 
     def step(self, action):
-        self.op3.unpause()
+        if self.pause_sim: self.op3.unpause()
         self.apply_action(action)
-        self.op3.pause()
+        if self.pause_sim: self.op3.pause()
         return (
             self.get_observation(),
             self.get_reward(),
@@ -102,8 +103,11 @@ class Op3Environment(gym.Env):
 
     def reset(self):
         self.target_pos = np.zeros(len(op3.controller_names))
-        self.op3.reset()
+        self.apply_action([0]*20)
+        time.sleep(0.5)
+        self.op3.reset_world()
         self.op3.unpause()
+        time.sleep(0.5)
         # self.op3.pause()
         while True:
             if self.op3.updated_imu:

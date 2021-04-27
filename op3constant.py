@@ -1,6 +1,5 @@
-command_topics = [
+position_topics = [
     "/robotis_op3/head_pan_position/command",
-    "/robotis_op3/head_tilt_position/command",
     "/robotis_op3/l_ank_pitch_position/command",
     "/robotis_op3/l_ank_roll_position/command",
     "/robotis_op3/l_el_position/command",
@@ -19,6 +18,28 @@ command_topics = [
     "/robotis_op3/r_knee_position/command",
     "/robotis_op3/r_sho_pitch_position/command",
     "/robotis_op3/r_sho_roll_position/command"
+]
+
+effort_topics = [
+    "/robotis_op3/head_pan_effort/command",
+    "/robotis_op3/l_ank_pitch_effort/command",
+    "/robotis_op3/l_ank_roll_effort/command",
+    "/robotis_op3/l_el_effort/command",
+    "/robotis_op3/l_hip_pitch_effort/command",
+    "/robotis_op3/l_hip_roll_effort/command",
+    "/robotis_op3/l_hip_yaw_effort/command",
+    "/robotis_op3/l_knee_effort/command",
+    "/robotis_op3/l_sho_pitch_effort/command",
+    "/robotis_op3/l_sho_roll_effort/command",
+    "/robotis_op3/r_ank_pitch_effort/command",
+    "/robotis_op3/r_ank_roll_effort/command",
+    "/robotis_op3/r_el_effort/command",
+    "/robotis_op3/r_hip_pitch_effort/command",
+    "/robotis_op3/r_hip_roll_effort/command",
+    "/robotis_op3/r_hip_yaw_effort/command",
+    "/robotis_op3/r_knee_effort/command",
+    "/robotis_op3/r_sho_pitch_effort/command",
+    "/robotis_op3/r_sho_roll_effort/command"
 ]
 
 op3_module_names = [
