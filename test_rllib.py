@@ -6,7 +6,7 @@ from ray.tune.registry import register_env
 from linear_env import Op3LinearEnvironment
 from rllib_config import config
 
-launchfile = '/home/smilu97/robotis/op3.launch'
+launchfile = './op3.launch'
 
 def env_creator(env_config):
     return Op3LinearEnvironment(launchfile)

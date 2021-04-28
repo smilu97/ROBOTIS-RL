@@ -16,7 +16,7 @@ import numpy as np
 
 from logistic_env import Op3LogisticEnvrionment
 
-launchfile = '/home/smilu97/robotis/op3.launch'
+launchfile = './op3.launch'
 
 def detect_monitor_files(training_dir):
     return [os.path.join(training_dir, f) for f in os.listdir(training_dir) if f.startswith('openaigym')]

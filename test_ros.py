@@ -4,7 +4,7 @@ import numpy as np
 from ros import RosController
 
 def main():
-    r = RosController('/home/smilu97/robotis/op3.launch')
+    r = RosController('./op3.launch')
     r.wait_for_controllers()
     while True:
         r.reset()

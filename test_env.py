@@ -5,7 +5,7 @@ import time
 from linear_env import Op3LinearEnvironment
 from logistic_env import Op3LogisticEnvrionment
 
-launchfile = '/home/smilu97/robotis/op3.launch'
+launchfile = './op3.launch'
 
 def main():
     # env = Op3LogisticEnvrionment(launchfile, speed=0.1)
@@ -22,7 +22,7 @@ def main():
             # action = np.zeros(env.action_size)
             # action[(i // T) % env.action_size] = 0.5 * np.sin(2 * np.pi * (i % T) / T) # all
             # action[4] = -0.5 + 0.5 * np.sin(2 * np.pi * i / T) # l_hip_pitch
-            # action[7] = 0.5 + 0.5 * np.sin(2 * np.pi * i / T) # l_knee
+            # action[7] =  0.5 + 0.5 * np.sin(2 * np.pi * i / T) # l_knee
             # action = 1.2 * (np.random.rand(env.action_size) - 0.5)
             action = (env.action_space.high - env.action_space.low) * np.random.rand(env.action_space.shape[0]) + env.action_space.low
             action = 2 * np.random.rand(env.action_size) - 1
