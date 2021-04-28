@@ -20,14 +20,37 @@ from sensor_msgs.msg import JointState, Imu
 class Op3Environment(gym.Env):
     def __init__(self, launchfile):
         self.op3 = Op3Controller(launchfile)
-        self.target_pos = np.zeros(len(op3.controller_names))
+        self.target_pos = np.zeros(len(op3.op3_module_names))
         self.prev_x = 0.0
         self.observation_size = 3*len(op3c.op3_module_names)+10
         self.action_size = len(op3c.op3_module_names)
         self.pause_sim = False
 
         sl = len(op3c.op3_module_names)
-        self.action_space = gym.spaces.Box(low=-1.2, high=1.2, shape=(sl,), dtype=np.float32)
+
+        self.action_range = np.array([
+            45, # head_tilt
+            45, # l_ank_pitch
+            45, # l_ank_roll
+            45, # l_el
+            70, # l_hip_pitch
+            45, # l_hip_roll
+            20, # l_hip_yaw
+            90, # l_knee
+            45, # l_sho_pitch
+            45, # l_sho_roll
+            45, # r_ank_pitch
+            45, # r_ank_roll
+            45, # r_el
+            70, # r_hip_pitch
+            45, # r_hip_roll
+            20, # r_hip_yaw
+            90, # r_knee
+            45, # r_sho_pitch
+            45, # r_sho_roll
+        ]) / 180 * np.pi
+
+        self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(sl,), dtype=np.float32)
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(3*sl+10,), dtype=np.float32)
     
     def get_observation(self):
@@ -44,6 +67,7 @@ class Op3Environment(gym.Env):
         pad = np.zeros(3)
         for index, name in enumerate(op3c.op3_module_names):
             state[(3*index):(3*index+3)] = joint_dict.get(name, pad)
+        self.target_pos = state[:3*len(op3c.op3_module_names):3]
         state[(3*len(op3c.op3_module_names)):] = serialize_imu(self.op3.get_imu())
         
         return state
@@ -75,18 +99,13 @@ class Op3Environment(gym.Env):
         return False
         
     def apply_action(self, action):
-        self.op3.publish_action2(action)
-        return
+        # self.op3.publish_action2(action)
+        # return
 
-        diff = 0.001
-        next_pos = np.array(self.target_pos)
-        for i in range(len(op3.controller_names)):
-            if action[i] == 1:
-                next_pos[i] += diff
-            elif action[i] == 2:
-                next_pos[i] -= diff
-        next_pos = np.maximum(-0.5, next_pos)
-        next_pos = np.minimum( 0.5, next_pos)
+        diff = 1.0
+        next_pos = diff * action + self.target_pos
+        next_pos = np.maximum(-self.action_range, next_pos)
+        next_pos = np.minimum( self.action_range, next_pos)
         self.op3.publish_action(next_pos)
         self.target_pos = next_pos
 
@@ -103,7 +122,7 @@ class Op3Environment(gym.Env):
 
     def reset(self):
         self.target_pos = np.zeros(len(op3.controller_names))
-        self.apply_action([0]*20)
+        self.op3.publish_action(self.target_pos)
         time.sleep(0.5)
         self.op3.reset_world()
         self.op3.unpause()

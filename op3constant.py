@@ -65,7 +65,6 @@ op3_module_names = [
 ]
 
 controller_names = [
-    "head_pan_position",
     "head_tilt_position",
     "l_ank_pitch_position",
     "l_ank_roll_position",

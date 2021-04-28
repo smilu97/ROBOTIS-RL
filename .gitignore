@@ -1,3 +1,4 @@
 **/*.pyc
 **/.vscode/
 gym
+MUJOCO_LOG.TXT
