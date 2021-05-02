@@ -2,6 +2,8 @@
 
 import numpy as np
 import time
+import op3constant as op3c
+from matplotlib import pyplot as plt
 from linear_env import Op3LinearEnvironment
 from logistic_env import Op3LogisticEnvrionment
 
@@ -13,23 +15,41 @@ def main():
     epochs = 1000
     time.sleep(5)
     episode = 1
+    sl = len(op3c.op3_module_names)
+    
+    env.reset()
+
     for num_epoch in range(epochs):
         print('epsiode {} start'.format(episode))
-        env.reset()
         i = 0
         T = 50
+        t_joint = np.random.randint(18)
+        pos = []
+        vel = []
+        eff = []
+        act = []
         while True:
-            # action = np.zeros(env.action_size)
-            # action[(i // T) % env.action_size] = 0.5 * np.sin(2 * np.pi * (i % T) / T) # all
-            # action[4] = -0.5 + 0.5 * np.sin(2 * np.pi * i / T) # l_hip_pitch
-            # action[7] =  0.5 + 0.5 * np.sin(2 * np.pi * i / T) # l_knee
-            # action = 1.2 * (np.random.rand(env.action_size) - 0.5)
             action = (env.action_space.high - env.action_space.low) * np.random.rand(env.action_space.shape[0]) + env.action_space.low
-            action = 2 * np.random.rand(env.action_size) - 1
             state, reward, done, info = env.step(action)
+
+            pos.append(state[t_joint])
+            vel.append(state[t_joint+ 1 * sl])
+            eff.append(state[t_joint+ 2 * sl])
+            act.append(action[t_joint])
+
             time.sleep(1.0 / 30)
             i += 1
-            # if done: break
+            if done: break
+
+        env.reset()
+        if False:
+            line_pos, = plt.plot(pos, label='pos')
+            line_vel, = plt.plot(vel, label='vel')
+            line_eff, = plt.plot(eff, label='eff')
+            line_act, = plt.plot(act, label='act')
+            plt.legend(handles=[line_pos, line_act, line_eff, line_vel])
+            plt.title(op3c.op3_module_names[t_joint])
+            plt.show()
         episode += 1
 
 if __name__ == '__main__':

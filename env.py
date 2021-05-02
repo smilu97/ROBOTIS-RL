@@ -24,7 +24,7 @@ class Op3Environment(gym.Env):
         self.prev_x = 0.0
         self.observation_size = 3*len(op3c.op3_module_names)+10
         self.action_size = len(op3c.op3_module_names)
-        self.pause_sim = False
+        self.pause_sim = True
 
         sl = len(op3c.op3_module_names)
 
@@ -50,7 +50,7 @@ class Op3Environment(gym.Env):
             45, # r_sho_roll
         ]) / 180 * np.pi
 
-        self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(sl,), dtype=np.float32)
+        self.action_space = gym.spaces.Box(low=-self.action_range, high=self.action_range, shape=(sl,), dtype=np.float32)
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(3*sl+10,), dtype=np.float32)
     
     def get_observation(self):
@@ -60,32 +60,31 @@ class Op3Environment(gym.Env):
             for index, name in enumerate(joint_states.name):
                 joint_dict[name] = [
                     joint_states.position[index],
-                    joint_states.velocity[index],
-                    joint_states.effort[index]
+                    joint_states.velocity[index] * 0.01,
+                    joint_states.effort[index] * 0.05,
                 ]
         state = np.empty(3 * len(op3c.op3_module_names) + 10) # len: 70
         pad = np.zeros(3)
+        sl = len(op3c.op3_module_names)
         for index, name in enumerate(op3c.op3_module_names):
-            state[(3*index):(3*index+3)] = joint_dict.get(name, pad)
+            jd = joint_dict.get(name, pad)
+            state[index] = jd[0]
+            state[sl + index] = jd[1]
+            state[2*sl + index] = jd[2]
         self.target_pos = state[:3*len(op3c.op3_module_names):3]
         state[(3*len(op3c.op3_module_names)):] = serialize_imu(self.op3.get_imu())
         
         return state
     
     def get_current_x(self):
-        target = 'robotis_op3::body_link'
-        states = self.op3.get_link_states()
-        for index in range(len(states.name)):
-            if states.name[index] == target:
-                return states.pose[index].position.x
-        return 0.0
         return self.op3.get_imu().orientation.x
     
-    def get_reward(self):
+    def get_reward(self, done):
         x = self.get_current_x()
-        reward = x - self.prev_x
+        reward = x - self.prev_x + 0.01
         self.prev_x = x
-        return reward + 0.01
+        
+        return reward
     
     def get_done(self):
         target = 'robotis_op3::body_link'
@@ -99,37 +98,32 @@ class Op3Environment(gym.Env):
         return False
         
     def apply_action(self, action):
-        # self.op3.publish_action2(action)
-        # return
-
-        diff = 1.0
-        next_pos = diff * action + self.target_pos
-        next_pos = np.maximum(-self.action_range, next_pos)
-        next_pos = np.minimum( self.action_range, next_pos)
-        self.op3.publish_action(next_pos)
-        self.target_pos = next_pos
+        self.op3.publish_action2(action)
 
     def step(self, action):
         if self.pause_sim: self.op3.unpause()
         self.apply_action(action)
+        time.sleep(1.0 / 60.0)
         if self.pause_sim: self.op3.pause()
+        done = self.get_done()
         return (
             self.get_observation(),
-            self.get_reward(),
-            self.get_done(),
+            self.get_reward(done),
+            done,
             {}
         )
 
     def reset(self):
-        self.target_pos = np.zeros(len(op3.controller_names))
-        self.op3.publish_action(self.target_pos)
-        time.sleep(0.5)
-        self.op3.reset_world()
+        self.target_pos *= 0
+        self.apply_action(self.target_pos)
+        # time.sleep(0.5)
+        self.op3.pause()
+        self.op3.reset_sim()
+        time.sleep(0.1)
         self.op3.unpause()
-        time.sleep(0.5)
-        # self.op3.pause()
         while True:
             if self.op3.updated_imu:
                 break
             time.sleep(0.01)
+        if self.pause_sim: self.op3.pause()
         return self.get_observation()
