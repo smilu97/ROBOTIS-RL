@@ -40,6 +40,10 @@ def main():
             time.sleep(1.0 / 30)
             i += 1
             if done: break
+        
+        # env.op3.delete_model()
+        # env.op3.spawn_model()
+        # time.sleep(1.0)
 
         env.reset()
         if False:
