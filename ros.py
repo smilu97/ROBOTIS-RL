@@ -18,6 +18,20 @@ from std_srvs.srv import Empty
 
 class RosController(object):
     def __init__(self, launchfile):
+        self.launchfile = launchfile
+        self.create()
+
+        self.unpause_proxy = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
+        self.pause_proxy = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+        self.reset_proxy = rospy.ServiceProxy('/gazebo/reset_world', Empty)
+        self.reset_sim_proxy = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
+        self.delete_model_proxy = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
+        self.spawn_model_proxy = rospy.ServiceProxy('/gazebo/spawn_urdf_model', SpawnModel)
+
+    def __del__(self):
+        self.destroy()
+    
+    def create(self):
         # self.last_clock_msg = Clock()
 
         if False:
@@ -39,17 +53,18 @@ class RosController(object):
         self._roslaunch = subprocess.Popen([
             sys.executable,
             os.path.join(ros_path, b"roslaunch"),
-            launchfile
+            self.launchfile
         ])
-        rospy.init_node('gym', anonymous=True)
+        rospy.init_node('gym' + str(random.randint(1000, 1500)), anonymous=True)
 
-        self.unpause_proxy = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
-        self.pause_proxy = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
-        self.reset_proxy = rospy.ServiceProxy('/gazebo/reset_world', Empty)
-        self.reset_sim_proxy = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
-        self.delete_model_proxy = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
-        self.spawn_model_proxy = rospy.ServiceProxy('/gazebo/spawn_urdf_model', SpawnModel)
-    
+    def destroy(self):
+        rospy.signal_shutdown('fin')
+        for name in ['gzserver', 'gzclient', 'roscore', 'rosmaster']:
+            try:
+                subprocess.check_output(['killall', '-9', name])
+            except:
+                pass
+
     def unpause(self):
         rospy.wait_for_service('/gazebo/unpause_physics')
         try:

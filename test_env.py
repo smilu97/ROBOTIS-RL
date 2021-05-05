@@ -13,7 +13,6 @@ def main():
     # env = Op3LogisticEnvrionment(launchfile, speed=0.1)
     env = Op3LinearEnvironment(launchfile)
     epochs = 1000
-    time.sleep(5)
     episode = 1
     sl = len(op3c.op3_module_names)
     
@@ -28,7 +27,8 @@ def main():
         vel = []
         eff = []
         act = []
-        while True:
+        done = False
+        while not done:
             action = (env.action_space.high - env.action_space.low) * np.random.rand(env.action_space.shape[0]) + env.action_space.low
             state, reward, done, info = env.step(action)
 
@@ -36,14 +36,8 @@ def main():
             vel.append(state[t_joint+ 1 * sl])
             eff.append(state[t_joint+ 2 * sl])
             act.append(action[t_joint])
-
-            time.sleep(1.0 / 30)
+            
             i += 1
-            if done: break
-        
-        # env.op3.delete_model()
-        # env.op3.spawn_model()
-        # time.sleep(1.0)
 
         env.reset()
         if False:

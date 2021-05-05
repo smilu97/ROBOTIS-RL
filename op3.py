@@ -51,6 +51,17 @@ class Op3Controller(RosController):
         self.prev_action = np.zeros(20)
         self.updated_imu = False
 
+        self.list_controllers = rospy.ServiceProxy('/robotis_op3/controller_manager/list_controllers', ListControllers)
+        self.reset_direct_motion_srv = rospy.ServiceProxy('/robotis/gym/reset_motion', Empty)
+
+        self.wait_for_controllers()
+
+        self.publishers = [rospy.Publisher(topic, Float64, queue_size=4) for topic in position_topics]
+        self.link_states_publisher = rospy.Publisher('/robotis/set_joint_states', JointState, queue_size=20)
+
+        self.subscribe()
+    
+    def subscribe(self):
         def link_states_cb(data):
             self.latest_link_states = data
         def imu_cb(data):
@@ -58,19 +69,9 @@ class Op3Controller(RosController):
             self.latest_imu = data
         def joint_states_cb(data):
             self.latest_joint_states = data
-
-        self.publishers = [rospy.Publisher(topic, Float64, queue_size=4) for topic in position_topics]
-        self.link_states_publisher = rospy.Publisher('/robotis/set_joint_states', JointState, queue_size=20)
-        if subscribe_link_states:
-            self.link_states_subscriber = rospy.Subscriber('/gazebo/link_states', LinkStates, link_states_cb, queue_size=10)
-        if subscribe_joint_states:
-            self.joint_states_subscriber = rospy.Subscriber('/robotis/present_joint_states', JointState, joint_states_cb, queue_size=10)
-        if subscribe_imu:
-            self.imu_subscriber = rospy.Subscriber('/robotis_op3/imu', Imu, imu_cb, queue_size=10)
-        self.list_controllers = rospy.ServiceProxy('/robotis_op3/controller_manager/list_controllers', ListControllers)
-        self.reset_direct_motion_srv = rospy.ServiceProxy('/robotis/gym/reset_motion', Empty)
-
-        self.wait_for_controllers()
+        self.link_states_subscriber = rospy.Subscriber('/gazebo/link_states', LinkStates, link_states_cb, queue_size=10)
+        self.joint_states_subscriber = rospy.Subscriber('/robotis/present_joint_states', JointState, joint_states_cb, queue_size=10)
+        self.imu_subscriber = rospy.Subscriber('/robotis_op3/imu', Imu, imu_cb, queue_size=10)
 
     def reset(self):
         self.reset_goal()

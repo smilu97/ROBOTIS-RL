@@ -15,4 +15,10 @@ register_env("RobotisOp3-v0", env_creator)
 
 config["env"] = "RobotisOp3-v0"
 
-tune.run(PPOTrainer, config=config)
+tune.run(
+    PPOTrainer,
+    resume=False,
+    local_dir='~/.ckp/op3-050409',
+    config=config,
+    checkpoint_freq=10,
+    checkpoint_at_end=True)

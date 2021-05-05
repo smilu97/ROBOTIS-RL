@@ -116,14 +116,12 @@ class Op3Environment(gym.Env):
     def reset(self):
         self.target_pos *= 0
         self.apply_action(self.target_pos)
-        # time.sleep(0.5)
         self.op3.pause()
         self.op3.reset_sim()
-        time.sleep(0.1)
         self.op3.unpause()
         while True:
             if self.op3.updated_imu:
                 break
-            time.sleep(0.01)
+            time.sleep(0.1)
         if self.pause_sim: self.op3.pause()
         return self.get_observation()
