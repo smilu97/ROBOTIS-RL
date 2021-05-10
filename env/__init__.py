@@ -32,6 +32,9 @@ class OP3Env(gym.Env):
         self.action_space = gym.spaces.Box(low=-self.action_range, high=self.action_range, shape=(sl,), dtype=np.float32)
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(3*sl+10,), dtype=np.float32)
     
+    def render(self, **kwargs):
+        self.op3.render(**kwargs)
+    
     def get_observation(self):
         joint_states = self.op3.latest_joint_states
         joint_dict = {}

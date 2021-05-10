@@ -57,6 +57,24 @@ class RosController(object):
         ])
         rospy.init_node('gym' + str(random.randint(1000, 1500)), anonymous=True)
 
+    def render(self, mode="human", close=False):
+        if close:
+            tmp = os.popen("ps -Af").read()
+            proccount = tmp.count('gzclient')
+            if proccount > 0:
+                if self.gzclient_pid != 0:
+                    os.kill(self.gzclient_pid, signal.SIGTERM)
+                    os.wait()
+            return
+
+        tmp = os.popen("ps -Af").read()
+        proccount = tmp.count('gzclient')
+        if proccount < 1:
+            subprocess.Popen("gzclient")
+            self.gzclient_pid = int(subprocess.check_output(["pidof","-s","gzclient"]))
+        else:
+            self.gzclient_pid = 0
+
     def destroy(self):
         rospy.signal_shutdown('fin')
         for name in ['gzserver', 'gzclient', 'roscore', 'rosmaster']:
