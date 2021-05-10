@@ -9,7 +9,8 @@ import torch
 import numpy as np
 
 import gym
-import roboschool
+import env
+import pybulletgym
 
 # import pybullet_envs
 
@@ -26,7 +27,8 @@ def train():
 
     ####### initialize environment hyperparameters ######
 
-    env_name = "RoboschoolHumanoid-v0"
+    env_name = "RobotisOp3-v0"
+    # env_name = "HumanoidPyBulletEnv-v0"
 
     has_continuous_action_space = True  # continuous action space; else discrete
 
@@ -207,7 +209,7 @@ def train():
     time_step = 0
     i_episode = 0
 
-    env.render('human')
+    env.render(mode='human')
 
     # training loop
     while time_step <= max_training_timesteps:
