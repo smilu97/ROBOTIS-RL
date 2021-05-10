@@ -61,7 +61,7 @@ class OP3Env(gym.Env):
         x = self._get_current_x()
         reward = x - self.prev_x + 0.01
         self.prev_x = x
-        
+
         return reward
     
     def get_done(self):
@@ -78,7 +78,7 @@ class OP3Env(gym.Env):
     def step(self, action):
         if self.pause_sim: self.op3.unpause()
         self.op3.act(action)
-        time.sleep(1.0 / 60.0)
+        time.sleep(0.004)
         if self.pause_sim: self.op3.pause()
         done = self.get_done()
         return (

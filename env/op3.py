@@ -48,6 +48,8 @@ class Op3Controller(RosController):
         self.latest_imu = None
         self.latest_joint_states = None
         self.prev_action = np.zeros(20)
+
+        self.updated_joint_states = False
         self.updated_imu = False
 
         self.list_controllers = rospy.ServiceProxy('/robotis_op3/controller_manager/list_controllers', ListControllers)
@@ -62,6 +64,7 @@ class Op3Controller(RosController):
             self.updated_imu = True
             self.latest_imu = data
         def joint_states_cb(data):
+            self.updated_joint_states = True
             self.latest_joint_states = data
         self.link_states_subscriber = rospy.Subscriber('/gazebo/link_states', LinkStates, link_states_cb, queue_size=10)
         self.joint_states_subscriber = rospy.Subscriber('/robotis/present_joint_states', JointState, joint_states_cb, queue_size=10)
@@ -91,6 +94,13 @@ class Op3Controller(RosController):
                     flag = False
                     break
             if flag: break
+    
+    def wait_joint_states(self):
+        self.updated_joint_states = False
+        while True:
+            time.sleep(0.01)
+            if self.updated_joint_states:
+                break
     
     def wait_imu(self):
         while True:
