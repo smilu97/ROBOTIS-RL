@@ -4,12 +4,8 @@ from ray import tune
 from ray.rllib.agents.ppo import PPOTrainer
 from ray.tune.registry import register_env
 from rllib_config import config
-from env import OP3Env
 
-def env_creator(env_config):
-    return OP3Env()
-
-register_env("RobotisOp3-v0", env_creator)
+import env
 
 config["env"] = "RobotisOp3-v0"
 

@@ -97,3 +97,8 @@ class OP3Env(gym.Env):
         self.op3.wait_imu()
         if self.pause_sim: self.op3.pause()
         return self.get_observation()
+
+gym.envs.register(
+    id='RobotisOp3-v0',
+    entry_point=OP3Env
+)

@@ -2,11 +2,12 @@
 
 import numpy as np
 import time
+import gym
+import env
 from matplotlib import pyplot as plt
-from env import OP3Env
 
 def main():
-    env = OP3Env()
+    env = gym.make('RobotisOp3-v0')
     epochs = 1000
     episode = 1
     sl = env.sl
