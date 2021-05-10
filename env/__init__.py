@@ -17,8 +17,8 @@ from std_srvs.srv import Empty
 from sensor_msgs.msg import JointState, Imu
 
 class OP3Env(gym.Env):
-    def __init__(self, launchfile = './env/op3.launch'):
-        self.op3 = Op3Controller(launchfile)
+    def __init__(self):
+        self.op3 = Op3Controller()
         self.target_pos = np.zeros(len(op3c.op3_module_names))
         self.prev_x = 0.0
         self.observation_size = 3*len(op3c.op3_module_names)+10
