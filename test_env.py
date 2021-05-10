@@ -2,19 +2,15 @@
 
 import numpy as np
 import time
-import op3constant as op3c
 from matplotlib import pyplot as plt
-from linear_env import Op3LinearEnvironment
-from logistic_env import Op3LogisticEnvrionment
-
-launchfile = './op3.launch'
+from env import OP3Env
 
 def main():
-    # env = Op3LogisticEnvrionment(launchfile, speed=0.1)
-    env = Op3LinearEnvironment(launchfile)
+    env = OP3Env()
     epochs = 1000
     episode = 1
-    sl = len(op3c.op3_module_names)
+    sl = env.sl
+    op3c = env.op3c
     
     env.reset()
 
@@ -45,8 +41,7 @@ def main():
             line_vel, = plt.plot(vel, label='vel')
             line_eff, = plt.plot(eff, label='eff')
             line_act, = plt.plot(act, label='act')
-            plt.legend(handles=[line_pos, line_act, line_eff, line_vel])
-            plt.title(op3c.op3_module_names[t_joint])
+            plt.legend(hanop3c.op3_module_names[t_joint])
             plt.show()
         episode += 1
 

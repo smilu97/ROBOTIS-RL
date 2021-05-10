@@ -1,3 +1,25 @@
+joint_ranges = [
+    45, # head_tilt
+    45, # l_ank_pitch
+    45, # l_ank_roll
+    45, # l_el
+    70, # l_hip_pitch
+    45, # l_hip_roll
+    20, # l_hip_yaw
+    90, # l_knee
+    45, # l_sho_pitch
+    45, # l_sho_roll
+    45, # r_ank_pitch
+    45, # r_ank_roll
+    45, # r_el
+    70, # r_hip_pitch
+    45, # r_hip_roll
+    20, # r_hip_yaw
+    90, # r_knee
+    45, # r_sho_pitch
+    45, # r_sho_roll
+]
+
 position_topics = [
     "/robotis_op3/head_pan_position/command",
     "/robotis_op3/l_ank_pitch_position/command",

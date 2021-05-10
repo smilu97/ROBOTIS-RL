@@ -5,6 +5,7 @@ import sys
 import rospy
 import time
 
+from .op3constant import op3_module_names, controller_names
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64
 from control_msgs.msg import JointControllerState
@@ -14,9 +15,7 @@ from robotis_controller_msgs.srv import SetJointModule, SetJointModuleRequest
 from std_srvs.srv import Empty
 from sensor_msgs.msg import JointState, Imu
 
-from op3constant import *
-
-from ros import RosController
+from .ros import RosController
 
 def serialize_imu(data):
     '''
@@ -52,13 +51,8 @@ class Op3Controller(RosController):
         self.updated_imu = False
 
         self.list_controllers = rospy.ServiceProxy('/robotis_op3/controller_manager/list_controllers', ListControllers)
-        self.reset_direct_motion_srv = rospy.ServiceProxy('/robotis/gym/reset_motion', Empty)
-
-        self.wait_for_controllers()
-
-        self.publishers = [rospy.Publisher(topic, Float64, queue_size=4) for topic in position_topics]
-        self.link_states_publisher = rospy.Publisher('/robotis/set_joint_states', JointState, queue_size=20)
-
+        self.wait_controllers()
+        self.publisher = rospy.Publisher('/robotis/set_joint_states', JointState, queue_size=20)
         self.subscribe()
     
     def subscribe(self):
@@ -74,38 +68,18 @@ class Op3Controller(RosController):
         self.imu_subscriber = rospy.Subscriber('/robotis_op3/imu', Imu, imu_cb, queue_size=10)
 
     def reset(self):
-        state = JointState()
-        state.name = op3_module_names
-        state.position = np.zeros(len(op3_module_names))
-        self.link_states_publisher.publish(state)
+        self.act(np.zeros(len(op3_module_names)))
         self.updated_imu = False
         super(Op3Controller, self).reset()
-
-    def get_link_states(self):
-        return self.latest_link_states
     
-    def get_imu(self):
-        return self.latest_imu
-    
-    def get_joint_states(self):
-        return self.latest_joint_states
-    
-    def publish_action(self, action):
-        for index, pub in enumerate(self.publishers):
-            value = Float64()
-            value.data = action[index]
-            pub.publish(value)
-    
-    def publish_action2(self, action):
+    def act(self, action):
         state = JointState()
         state.name = op3_module_names
         sl = len(op3_module_names)
         state.position = action[:sl]
-        # state.velocity = 0.0001 * np.ones((sl,))
-        # state.effort = 0.01 * np.ones((sl,))
-        self.link_states_publisher.publish(state)
+        self.publisher.publish(state)
     
-    def wait_for_controllers(self):
+    def wait_controllers(self):
         rospy.wait_for_service('/robotis_op3/controller_manager/list_controllers')
         ctrls = None
         while True:
@@ -117,3 +91,9 @@ class Op3Controller(RosController):
                     flag = False
                     break
             if flag: break
+    
+    def wait_imu(self):
+        while True:
+            if self.updated_imu:
+                break
+            time.sleep(0.1)

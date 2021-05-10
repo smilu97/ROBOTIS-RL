@@ -5,7 +5,6 @@ import subprocess
 import sys
 import rospy
 import rospkg
-import op3
 import time
 
 from geometry_msgs.msg import Twist, Pose
@@ -17,8 +16,9 @@ from controller_manager_msgs.srv import ListControllers
 from std_srvs.srv import Empty
 
 class RosController(object):
-    def __init__(self, launchfile):
+    def __init__(self, launchfile, randomize_port=False):
         self.launchfile = launchfile
+        self.randomize_port = randomize_port
         self.create()
 
         self.unpause_proxy = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
@@ -34,7 +34,7 @@ class RosController(object):
     def create(self):
         # self.last_clock_msg = Clock()
 
-        if False:
+        if self.randomize_port:
             random_number = random.randint(10000, 15000)
             # self.port = "11311"#str(random_number) #os.environ["ROS_PORT_SIM"]
             # self.port_gazebo = "11345"#str(random_number+1) #os.environ["ROS_PORT_SIM"]

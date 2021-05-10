@@ -3,13 +3,11 @@
 from ray import tune
 from ray.rllib.agents.ppo import PPOTrainer
 from ray.tune.registry import register_env
-from linear_env import Op3LinearEnvironment
 from rllib_config import config
-
-launchfile = './op3.launch'
+from env import OP3Env
 
 def env_creator(env_config):
-    return Op3LinearEnvironment(launchfile)
+    return OP3Env()
 
 register_env("RobotisOp3-v0", env_creator)
 
