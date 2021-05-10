@@ -207,6 +207,7 @@ def train():
     time_step = 0
     i_episode = 0
 
+    env.render('human')
 
     # training loop
     while time_step <= max_training_timesteps:
@@ -229,6 +230,7 @@ def train():
 
             # update PPO agent
             if time_step % update_timestep == 0:
+                print('Update params on eps {}'.format(i_episode))
                 ppo_agent.update()
 
             # if continuous action space; then decay action std of ouput action distribution
