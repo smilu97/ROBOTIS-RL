@@ -5,17 +5,17 @@ def s(lst, indices):
 
 indices = [1,4,5,6,7,8,9,10,13,14,15,16,17,18]
 
-knee = 70
+knee = 50
 hip_roll = 10
 hip_yaw = 10
-hip_pitch = 70
+hip_pitch = 50
 ank_pitch = 30
 
 head_tilt = 0
-sho_roll = 70
-sho_pitch = 70
-ank_roll = 0
-el = 0
+sho_roll = 50
+sho_pitch = 50
+ank_roll = 5
+el = 10
 
 joint_ranges = s([
     head_tilt, # head_tilt 0

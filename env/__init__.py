@@ -17,8 +17,8 @@ from std_srvs.srv import Empty
 from sensor_msgs.msg import JointState, Imu
 
 class OP3Env(gym.Env):
-    def __init__(self, step_size=0.02):
-        self.op3 = Op3Controller()
+    def __init__(self, step_size=0.02, random_port=True):
+        self.op3 = Op3Controller(random_port=random_port)
         self.target_pos = np.zeros(len(op3c.op3_module_names))
         self.prev_x = 0.0
         self.observation_size = 3*len(op3c.op3_module_names)+10
@@ -30,7 +30,7 @@ class OP3Env(gym.Env):
         self.sl = sl
         self.op3c = op3c
         self.action_range = np.array(op3c.joint_ranges) / 180 * np.pi
-        self.action_space = gym.spaces.Box(low=-self.action_range, high=self.action_range, shape=(sl,), dtype=np.float32)
+        self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(sl,), dtype=np.float32)
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(3*sl+10,), dtype=np.float32)
         self.step_size = step_size
     
@@ -76,6 +76,7 @@ class OP3Env(gym.Env):
         energy = np.sum(np.square(obs[self.sl : 2*self.sl])) * self.energy_cost
         stuck = self.count_stuck(obs) * self.stuck_cost
         rewards = np.array((progress, alive, energy, stuck))
+        self.reward_debug += rewards
 
         return np.sum(rewards)
     
@@ -91,16 +92,21 @@ class OP3Env(gym.Env):
         return 0.0
 
     def step(self, action):
-        if self.pause_sim: self.op3.unpause()
+        # if self.pause_sim: self.op3.unpause()
         self.op3.act(action * self.action_range)
-        time.sleep(self.step_size)
-        if self.pause_sim: self.op3.pause()
+        self.op3.iterate(400)
+        # time.sleep(self.step_size)
+        # if self.pause_sim: self.op3.pause()
         position = self.get_position()
         done = self.get_done(position)
         obs = self.get_observation()
         if np.any(np.isnan(obs)):
             raise Exception('robot broken down!')
         reward = self.get_reward(obs, position, done)
+
+        if done:
+            print('rewards:', self.reward_debug)
+            self.reward_debug = np.zeros(4)
 
         return (
             obs,

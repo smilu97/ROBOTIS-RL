@@ -1,7 +1,5 @@
-from ray.rllib.utils.filter import MeanStdFilter
-
 config = {
-    "num_workers": 1,
+    "num_workers": 8,
     "num_envs_per_worker": 1,
     "num_gpus": 1,
     "gamma": 0.995,
@@ -16,5 +14,5 @@ config = {
         "free_log_std": True
     },
     "batch_mode": "complete_episodes",
-    "observation_filter": MeanStdFilter
+    "observation_filter": "MeanStdFilter"
 }

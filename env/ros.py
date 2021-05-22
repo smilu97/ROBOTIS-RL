@@ -12,6 +12,7 @@ from std_msgs.msg import Float64
 from control_msgs.msg import JointControllerState
 from gazebo_msgs.msg import LinkStates
 from gazebo_msgs.srv import DeleteModel, SpawnModel
+from op3_gym.srv import Step, StepRequest
 from controller_manager_msgs.srv import ListControllers
 from std_srvs.srv import Empty
 
@@ -26,6 +27,7 @@ class RosController(object):
         self.reset_proxy = rospy.ServiceProxy('/gazebo/reset_world', Empty)
         self.reset_sim_proxy = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
         self.delete_model_proxy = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
+        self.iterate_proxy = rospy.ServiceProxy('/iterate', Step)
         self.spawn_model_proxy = rospy.ServiceProxy('/gazebo/spawn_urdf_model', SpawnModel)
 
     def __del__(self):
@@ -97,6 +99,15 @@ class RosController(object):
         except (rospy.ServiceException) as e:
             print ("/gazebo/pause_physics service call failed")
     
+    def iterate(self, n):
+        rospy.wait_for_service('/iterate')
+        try:
+            req = StepRequest()
+            req.iterations = n
+            self.iterate_proxy(req)
+        except (rospy.ServiceException) as e:
+            print ("/iterate service call failed")
+
     def reset_world(self):
         rospy.wait_for_service('/gazebo/reset_world')
         try:

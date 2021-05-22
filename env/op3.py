@@ -41,8 +41,9 @@ class Op3Controller(RosController):
         subscribe_link_states = True,
         subscribe_imu = True,
         subscribe_joint_states = True,
+        random_port=True,
     ):
-        super(Op3Controller, self).__init__(launchfile)
+        super(Op3Controller, self).__init__(launchfile, randomize_port=random_port)
 
         self.latest_link_states = None
         self.latest_imu = None
