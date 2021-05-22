@@ -16,7 +16,7 @@ from controller_manager_msgs.srv import ListControllers
 from std_srvs.srv import Empty
 
 class RosController(object):
-    def __init__(self, launchfile, randomize_port=False):
+    def __init__(self, launchfile, randomize_port=True):
         self.launchfile = launchfile
         self.randomize_port = randomize_port
         self.create()

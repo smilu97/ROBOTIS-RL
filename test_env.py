@@ -4,46 +4,32 @@ import numpy as np
 import time
 import gym
 import env
+import pybulletgym
 from matplotlib import pyplot as plt
 
 def main():
     env = gym.make('RobotisOp3-v0')
     epochs = 1000
     episode = 1
-    sl = env.sl
-    op3c = env.op3c
+    sl = env.action_space.shape[0]
     
-    env.reset()
+    if False:
+        env.render(mode='human')
 
     for num_epoch in range(epochs):
         print('epsiode {} start'.format(episode))
-        i = 0
-        T = 50
-        t_joint = np.random.randint(18)
-        pos = []
-        vel = []
-        eff = []
-        act = []
-        done = False
-        while not done:
-            action = (env.action_space.high - env.action_space.low) * np.random.rand(env.action_space.shape[0]) + env.action_space.low
-            state, reward, done, info = env.step(action)
-
-            pos.append(state[t_joint])
-            vel.append(state[t_joint+ 1 * sl])
-            eff.append(state[t_joint+ 2 * sl])
-            act.append(action[t_joint])
-            
-            i += 1
-
         env.reset()
-        if False:
-            line_pos, = plt.plot(pos, label='pos')
-            line_vel, = plt.plot(vel, label='vel')
-            line_eff, = plt.plot(eff, label='eff')
-            line_act, = plt.plot(act, label='act')
-            plt.legend(hanop3c.op3_module_names[t_joint])
-            plt.show()
+        done = False
+        acc_reward = 0.0
+        num_steps = 0
+        while not done:
+            action = 2 * np.random.rand(sl) - 1
+            state, reward, done, info = env.step(action)
+            acc_reward += reward
+            num_steps += 1
+        
+        print('reward:', acc_reward)
+        print('num steps:', num_steps)
         episode += 1
 
 if __name__ == '__main__':

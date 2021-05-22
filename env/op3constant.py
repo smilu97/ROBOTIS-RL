@@ -1,70 +1,45 @@
-joint_ranges = [
-    45, # head_tilt
-    45, # l_ank_pitch
-    45, # l_ank_roll
-    45, # l_el
-    70, # l_hip_pitch
-    45, # l_hip_roll
-    20, # l_hip_yaw
-    90, # l_knee
-    45, # l_sho_pitch
-    45, # l_sho_roll
-    45, # r_ank_pitch
-    45, # r_ank_roll
-    45, # r_el
-    70, # r_hip_pitch
-    45, # r_hip_roll
-    20, # r_hip_yaw
-    90, # r_knee
-    45, # r_sho_pitch
-    45, # r_sho_roll
-]
+def s(lst, indices):
+    res = []
+    for i in indices: res.append(lst[i])
+    return res
 
-position_topics = [
-    "/robotis_op3/head_pan_position/command",
-    "/robotis_op3/l_ank_pitch_position/command",
-    "/robotis_op3/l_ank_roll_position/command",
-    "/robotis_op3/l_el_position/command",
-    "/robotis_op3/l_hip_pitch_position/command",
-    "/robotis_op3/l_hip_roll_position/command",
-    "/robotis_op3/l_hip_yaw_position/command",
-    "/robotis_op3/l_knee_position/command",
-    "/robotis_op3/l_sho_pitch_position/command",
-    "/robotis_op3/l_sho_roll_position/command",
-    "/robotis_op3/r_ank_pitch_position/command",
-    "/robotis_op3/r_ank_roll_position/command",
-    "/robotis_op3/r_el_position/command",
-    "/robotis_op3/r_hip_pitch_position/command",
-    "/robotis_op3/r_hip_roll_position/command",
-    "/robotis_op3/r_hip_yaw_position/command",
-    "/robotis_op3/r_knee_position/command",
-    "/robotis_op3/r_sho_pitch_position/command",
-    "/robotis_op3/r_sho_roll_position/command"
-]
+indices = [1,4,5,6,7,8,9,10,13,14,15,16,17,18]
 
-effort_topics = [
-    "/robotis_op3/head_pan_effort/command",
-    "/robotis_op3/l_ank_pitch_effort/command",
-    "/robotis_op3/l_ank_roll_effort/command",
-    "/robotis_op3/l_el_effort/command",
-    "/robotis_op3/l_hip_pitch_effort/command",
-    "/robotis_op3/l_hip_roll_effort/command",
-    "/robotis_op3/l_hip_yaw_effort/command",
-    "/robotis_op3/l_knee_effort/command",
-    "/robotis_op3/l_sho_pitch_effort/command",
-    "/robotis_op3/l_sho_roll_effort/command",
-    "/robotis_op3/r_ank_pitch_effort/command",
-    "/robotis_op3/r_ank_roll_effort/command",
-    "/robotis_op3/r_el_effort/command",
-    "/robotis_op3/r_hip_pitch_effort/command",
-    "/robotis_op3/r_hip_roll_effort/command",
-    "/robotis_op3/r_hip_yaw_effort/command",
-    "/robotis_op3/r_knee_effort/command",
-    "/robotis_op3/r_sho_pitch_effort/command",
-    "/robotis_op3/r_sho_roll_effort/command"
-]
+knee = 70
+hip_roll = 10
+hip_yaw = 10
+hip_pitch = 70
+ank_pitch = 30
 
-op3_module_names = [
+head_tilt = 0
+sho_roll = 70
+sho_pitch = 70
+ank_roll = 0
+el = 0
+
+joint_ranges = s([
+    head_tilt, # head_tilt 0
+    ank_pitch, # l_ank_pitch 1
+    ank_roll, # l_ank_roll 2
+    el, # l_el 3
+    hip_pitch, # l_hip_pitch 4
+    hip_roll, # l_hip_roll 5
+    hip_yaw, # l_hip_yaw 6
+    knee, # l_knee 7
+    sho_pitch, # l_sho_pitch 8
+    sho_roll, # l_sho_roll 9
+    ank_pitch, # r_ank_pitch 3
+    ank_roll, # r_ank_roll 11
+    el, # r_el 12
+    hip_pitch, # r_hip_pitch 13
+    hip_roll, # r_hip_roll 14
+    hip_yaw, # r_hip_yaw 15
+    knee, # r_knee 16
+    sho_pitch, # r_sho_pitch 17
+    sho_roll, # r_sho_roll 18
+], indices)
+
+op3_module_names = s([
     'head_tilt',
     'l_ank_pitch',
     'l_ank_roll',
@@ -84,9 +59,9 @@ op3_module_names = [
     'r_knee',
     'r_sho_pitch',
     'r_sho_roll',
-]
+], indices)
 
-controller_names = [
+controller_names = s([
     "head_tilt_position",
     "l_ank_pitch_position",
     "l_ank_roll_position",
@@ -106,28 +81,4 @@ controller_names = [
     "r_knee_position",
     "r_sho_pitch_position",
     "r_sho_roll_position"
-]
-
-links = [
-    "robotis_op3::body_link",
-    "robotis_op3::head_pan_link",
-    "robotis_op3::head_tilt_link",
-    "robotis_op3::l_hip_yaw_link",
-    "robotis_op3::l_hip_roll_link",
-    "robotis_op3::l_hip_pitch_link",
-    "robotis_op3::l_knee_link",
-    "robotis_op3::l_ank_pitch_link",
-    "robotis_op3::l_ank_roll_link",
-    "robotis_op3::l_sho_pitch_link",
-    "robotis_op3::l_sho_roll_link",
-    "robotis_op3::l_el_link",
-    "robotis_op3::r_hip_yaw_link",
-    "robotis_op3::r_hip_roll_link",
-    "robotis_op3::r_hip_pitch_link",
-    "robotis_op3::r_knee_link",
-    "robotis_op3::r_ank_pitch_link",
-    "robotis_op3::r_ank_roll_link",
-    "robotis_op3::r_sho_pitch_link",
-    "robotis_op3::r_sho_roll_link",
-    "robotis_op3::r_el_link",
-]
+], indices)

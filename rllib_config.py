@@ -9,9 +9,9 @@ config = {
     "clip_param": 0.2,
     "kl_coeff": 1.0,
     "num_sgd_iter": 20,
-    "lr": 0.01,
-    "sgd_minibatch_size": 512,
-    "train_batch_size": 512,
+    "lr": 0.0001,
+    "sgd_minibatch_size": 10000,
+    "train_batch_size": 10000,
     "model": {
         "free_log_std": True
     },
