@@ -2,8 +2,10 @@
 
 from ray import tune
 from ray.rllib.agents.ppo import PPOTrainer
+from ray.rllib.agents.sac import SACTrainer
 from ray.tune.registry import register_env
-from rllib_config import config
+from ppo_config import config as ppo_config
+from sac_config import config as sac_config
 from env import OP3Env
 import gym
 import pybulletgym
@@ -11,12 +13,18 @@ import pybulletgym
 def env_creator(env_config):
     return OP3Env()
 
+trainer = 'ppo'
+
+config = ppo_config if trainer == 'ppo' else sac_config
+t = PPOTrainer if trainer == 'ppo' else SACTrainer
+
 register_env("RobotisOp3-v0", env_creator)
 config["env"] = "RobotisOp3-v0"
 
 tune.run(
-    PPOTrainer,
+    t,
     resume=False,
     config=config,
-    checkpoint_freq=1,
-    checkpoint_at_end=False)
+    checkpoint_freq=10,
+    checkpoint_at_end=True)
+    
