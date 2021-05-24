@@ -18,7 +18,7 @@ config["num_workers"] = 1
 
 ray.init()
 agent = PPOTrainer(config=config, env=OP3Env)
-agent.restore('/home/smilu97/checkpoints/op3-001/PPO_RobotisOp3-v0_63bd7_00000_0_2021-05-22_19-13-44/checkpoint_000236/checkpoint-236')
+agent.restore('~/checkpoints/op3-002/PPO_RobotisOp3-v0_b1556_00000_0_2021-05-24_00-58-19/checkpoint_000581/checkpoint-581')
 
 # instantiate env class
 env = OP3Env()

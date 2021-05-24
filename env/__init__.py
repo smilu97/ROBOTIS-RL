@@ -17,18 +17,21 @@ from std_srvs.srv import Empty
 from sensor_msgs.msg import JointState, Imu
 
 class OP3Env(gym.Env):
-    def __init__(self, step_size=0.02, random_port=True):
+    def __init__(self, step_size=0.02, random_port=True, print_rewards=False):
+        self.print_rewards = print_rewards
         self.op3 = Op3Controller(random_port=random_port)
         self.target_pos = np.zeros(len(op3c.op3_module_names))
         self.prev_x = 0.0
         self.observation_size = 3*len(op3c.op3_module_names)+10
         self.action_size = len(op3c.op3_module_names)
-        self.pause_sim = False
-        self.reward_debug = np.zeros(4)
+        self.pause_sim = True
+        self.reward_debug = np.zeros(5)
 
         sl = len(op3c.op3_module_names)
+        self.acc_action = np.zeros(sl)
         self.sl = sl
         self.op3c = op3c
+        self.action_bias = np.array(op3c.joint_bias) / 180 * np.pi
         self.action_range = np.array(op3c.joint_ranges) / 180 * np.pi
         self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(sl,), dtype=np.float32)
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(3*sl+10,), dtype=np.float32)
@@ -63,19 +66,21 @@ class OP3Env(gym.Env):
         position = obs[:self.sl]
         return np.sum(position <= -self.action_range) + np.sum(position >= self.action_range)
     
-    alive_bonus = 3.0
-    energy_cost = -5.0
-    stuck_cost = -1.0
-    progress_bonus = 100.0
+    alive_bonus = 2.0
+    velocity_cost = -1.0
+    effort_cost = -0.5
+    stuck_cost = -0.03
+    progress_bonus = 40.0
 
     def get_reward(self, obs, position, done):
         dx = position.x - self.prev_x
         self.prev_x = position.x
         progress = dx * self.progress_bonus
         alive = position.z * self.alive_bonus
-        energy = np.sum(np.square(obs[self.sl : 2*self.sl])) * self.energy_cost
+        velocity = np.sum(np.abs(obs[self.sl : 2*self.sl])) * self.velocity_cost
+        effort = np.sum(np.abs(obs[2*self.sl : 3*self.sl])) * self.effort_cost
         stuck = self.count_stuck(obs) * self.stuck_cost
-        rewards = np.array((progress, alive, energy, stuck))
+        rewards = np.array((progress, alive, velocity, effort, stuck))
         self.reward_debug += rewards
 
         return np.sum(rewards)
@@ -93,8 +98,9 @@ class OP3Env(gym.Env):
 
     def step(self, action):
         # if self.pause_sim: self.op3.unpause()
-        self.op3.act(action * self.action_range)
-        self.op3.iterate(400)
+        self.acc_action = self.acc_action * 0.9 + action * 0.1
+        self.op3.act(self.acc_action * self.action_range + self.action_bias)
+        self.op3.iterate(20)
         # time.sleep(self.step_size)
         # if self.pause_sim: self.op3.pause()
         position = self.get_position()
@@ -104,9 +110,9 @@ class OP3Env(gym.Env):
             raise Exception('robot broken down!')
         reward = self.get_reward(obs, position, done)
 
-        if done:
+        if self.print_rewards and done:
             print('rewards:', self.reward_debug)
-            self.reward_debug = np.zeros(4)
+            self.reward_debug = np.zeros(5)
 
         return (
             obs,
@@ -118,6 +124,7 @@ class OP3Env(gym.Env):
     def reset(self):
         self.target_pos *= 0
         self.prev_x = 0.0
+        self.op3.last_clock = 0
         self.op3.act(self.target_pos)
         self.op3.pause()
         self.op3.reset_sim()

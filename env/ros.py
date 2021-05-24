@@ -6,15 +6,21 @@ import sys
 import rospy
 import rospkg
 import time
+import threading
 
 from geometry_msgs.msg import Twist, Pose
 from std_msgs.msg import Float64
 from control_msgs.msg import JointControllerState
 from gazebo_msgs.msg import LinkStates
+from rosgraph_msgs.msg import Clock
 from gazebo_msgs.srv import DeleteModel, SpawnModel
 from op3_gym.srv import Step, StepRequest
 from controller_manager_msgs.srv import ListControllers
 from std_srvs.srv import Empty
+
+def clock_to_int(c):
+    c = c.clock
+    return c.secs * 1000000000 + c.nsecs
 
 class RosController(object):
     def __init__(self, launchfile, randomize_port=True):
@@ -34,7 +40,9 @@ class RosController(object):
         self.destroy()
     
     def create(self):
-        # self.last_clock_msg = Clock()
+        self.last_clock = 0
+        self.target_clock = 0
+        self.clock_event = threading.Event()
 
         if self.randomize_port:
             random_number = random.randint(10000, 15000)
@@ -58,6 +66,13 @@ class RosController(object):
             self.launchfile
         ])
         rospy.init_node('gym' + str(random.randint(1000, 1500)), anonymous=True)
+
+        def clock_cb(data):
+            if self.last_clock >= self.target_clock:
+                self.clock_event.set()
+            # print('last: {}, target: {}, set: {}'.format(self.last_clock, self.target_clock, self.last_clock >= self.target_clock))
+            self.last_clock = clock_to_int(data)
+        self.clock_subscriber = rospy.Subscriber('/clock', Clock, clock_cb, queue_size=10)
 
     def render(self, mode="human", close=False):
         if close:
@@ -102,9 +117,12 @@ class RosController(object):
     def iterate(self, n):
         rospy.wait_for_service('/iterate')
         try:
+            self.target_clock = self.last_clock + n * 1000000 - 1000000
             req = StepRequest()
             req.iterations = n
+            self.clock_event.clear()
             self.iterate_proxy(req)
+            self.clock_event.wait()
         except (rospy.ServiceException) as e:
             print ("/iterate service call failed")
 

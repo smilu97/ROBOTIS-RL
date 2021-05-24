@@ -4,16 +4,17 @@ def s(lst, indices):
     return res
 
 indices = [1,4,5,6,7,8,9,10,13,14,15,16,17,18]
+indices = range(19)
 
 knee = 50
-hip_roll = 10
-hip_yaw = 10
-hip_pitch = 50
+hip_roll = 50 # side (left, right)
+hip_yaw = 50
+hip_pitch = 50 # front, back
 ank_pitch = 30
 
 head_tilt = 0
-sho_roll = 50
-sho_pitch = 50
+sho_roll = 10 # shoulder down, up
+sho_pitch = 10
 ank_roll = 5
 el = 10
 
@@ -37,6 +38,28 @@ joint_ranges = s([
     knee, # r_knee 16
     sho_pitch, # r_sho_pitch 17
     sho_roll, # r_sho_roll 18
+], indices)
+
+joint_bias = s([
+    0, # head_tilt 0
+    0, # l_ank_pitch 1
+    0, # l_ank_roll 2
+    0, # l_el 3
+    0, # l_hip_pitch 4
+    0, # l_hip_roll 5
+    0, # l_hip_yaw 6
+    0, # l_knee 7
+    0, # l_sho_pitch 8
+    60, # l_sho_roll 9
+    0, # r_ank_pitch 3
+    0, # r_ank_roll 11
+    0, # r_el 12
+    0, # r_hip_pitch 13
+    0, # r_hip_roll 14
+    0, # r_hip_yaw 15
+    0, # r_knee 16
+    0, # r_sho_pitch 17
+    -60, # r_sho_roll 18
 ], indices)
 
 op3_module_names = s([

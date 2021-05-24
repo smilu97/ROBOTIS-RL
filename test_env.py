@@ -8,7 +8,7 @@ import pybulletgym
 from matplotlib import pyplot as plt
 
 def main():
-    env = gym.make('RobotisOp3-v0', random_port=False)
+    env = gym.make('RobotisOp3-v0', random_port=False, print_rewards=True)
     epochs = 1000
     episode = 1
     sl = env.action_space.shape[0]
@@ -23,8 +23,7 @@ def main():
         acc_reward = 0.0
         num_steps = 0
         while not done:
-            # action = 2 * np.random.rand(sl) - 1
-            action = np.zeros(sl)
+            action = 2 * np.random.rand(sl) - 1
             obs, reward, done, info = env.step(action)
             acc_reward += reward
             num_steps += 1
