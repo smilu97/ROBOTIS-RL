@@ -3,18 +3,22 @@
 import numpy as np
 import gym
 import pybulletgym
-
-def policy(state):
-    return np.zeros(17)
+import time
 
 def main():
-    env = gym.make('HumanoidPyBulletEnv-v0')
+    env = gym.make('HalfCheetahPyBulletEnv-v0')
     env.render()
+    sl = env.action_space.shape[0]
+    random_action = False
     while True:
         state = env.reset()
         while True:
-            action = policy(state)
+            if random_action:
+                action = 2 * np.random.rand(sl) - 1
+            else:
+                action = np.zeros(sl)
             state, reward, done, info = env.step(action)
+            time.sleep(1/60)
             if done: break
 
 if __name__ == '__main__':

@@ -20,12 +20,12 @@ class OP3Env(gym.Env):
     def __init__(self, step_size=0.02, random_port=True, print_rewards=False):
         self.print_rewards = print_rewards
         self.op3 = Op3Controller(random_port=random_port)
-        self.target_pos = np.zeros(len(op3c.op3_module_names))
-        self.prev_x = 0.0
+        self.reset_variables()
         self.observation_size = 3*len(op3c.op3_module_names)+10
         self.action_size = len(op3c.op3_module_names)
         self.pause_sim = True
         self.reward_debug = np.zeros(5)
+        
 
         sl = len(op3c.op3_module_names)
         self.acc_action = np.zeros(sl)
@@ -37,6 +37,13 @@ class OP3Env(gym.Env):
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(3*sl+10,), dtype=np.float32)
         self.step_size = step_size
     
+    def reset_variables(self):
+        self.prev_x = 0.0
+        self.prev_z = None
+        self.t = 0
+        self.op3.last_clock = 0
+        self.op3.latest_joint_states = None
+
     def render(self, **kwargs):
         self.op3.render(**kwargs)
     
@@ -57,30 +64,36 @@ class OP3Env(gym.Env):
             state[index] = jd[0]
             state[self.sl + index] = jd[1]
             state[2*self.sl + index] = jd[2]
-        self.target_pos = state[:3*len(op3c.op3_module_names):3]
         state[(3*len(op3c.op3_module_names)):] = serialize_imu(self.op3.latest_imu)
         
         return state
     
     def count_stuck(self, obs):
         position = obs[:self.sl]
-        return np.sum(position <= -self.action_range) + np.sum(position >= self.action_range)
+        p1 = self.action_bias - self.action_range
+        p2 = self.action_bias + self.action_range
+        return np.sum(position <= p1) + np.sum(position >= p2)
     
-    alive_bonus = 2.0
-    velocity_cost = -1.0
-    effort_cost = -0.5
-    stuck_cost = -0.03
-    progress_bonus = 40.0
+    progress_bonus = 10.0
+    alive_bonus = 1.0
+    velocity_cost = -20.0
+    height_bonus = 5000.0
+    # effort_cost = -0.25
+    stuck_cost = -0.1
+    
 
     def get_reward(self, obs, position, done):
         dx = position.x - self.prev_x
+        dz = 0 if self.prev_z is None else position.z - self.prev_z
         self.prev_x = position.x
+        self.prev_z = position.z
         progress = dx * self.progress_bonus
-        alive = position.z * self.alive_bonus
-        velocity = np.sum(np.abs(obs[self.sl : 2*self.sl])) * self.velocity_cost
-        effort = np.sum(np.abs(obs[2*self.sl : 3*self.sl])) * self.effort_cost
+        height = (-1 if dz < 0 else 0) * dz*dz * self.height_bonus
+        alive = np.log(self.t/100 + 1) * self.alive_bonus
+        velocity = np.sum(np.square(obs[self.sl : 2*self.sl])) * self.velocity_cost
+        # effort = np.sum(np.abs(obs[2*self.sl : 3*self.sl])) * self.effort_cost
         stuck = self.count_stuck(obs) * self.stuck_cost
-        rewards = np.array((progress, alive, velocity, effort, stuck))
+        rewards = np.array((progress, alive, velocity, height, stuck))
         self.reward_debug += rewards
 
         return np.sum(rewards)
@@ -98,9 +111,10 @@ class OP3Env(gym.Env):
 
     def step(self, action):
         # if self.pause_sim: self.op3.unpause()
-        self.acc_action = self.acc_action * 0.9 + action * 0.1
+        action_modify_rate = 1.0
+        self.acc_action = self.acc_action * (1.0 - action_modify_rate) + action * action_modify_rate
         self.op3.act(self.acc_action * self.action_range + self.action_bias)
-        self.op3.iterate(20)
+        self.op3.iterate(40)
         # time.sleep(self.step_size)
         # if self.pause_sim: self.op3.pause()
         position = self.get_position()
@@ -109,10 +123,11 @@ class OP3Env(gym.Env):
         if np.any(np.isnan(obs)):
             raise Exception('robot broken down!')
         reward = self.get_reward(obs, position, done)
+        self.t += 1
 
         if self.print_rewards and done:
             print('rewards:', self.reward_debug)
-            self.reward_debug = np.zeros(5)
+            self.reward_debug = np.zeros(self.reward_debug.shape[0])
 
         return (
             obs,
@@ -122,10 +137,7 @@ class OP3Env(gym.Env):
         )
 
     def reset(self):
-        self.target_pos *= 0
-        self.prev_x = 0.0
-        self.op3.last_clock = 0
-        self.op3.act(self.target_pos)
+        self.reset_variables()
         self.op3.pause()
         self.op3.reset_sim()
         self.op3.unpause()

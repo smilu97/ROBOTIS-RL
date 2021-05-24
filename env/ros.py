@@ -24,6 +24,8 @@ def clock_to_int(c):
 
 class RosController(object):
     def __init__(self, launchfile, randomize_port=True):
+        if launchfile is None:
+            launchfile = os.path.dirname(os.path.abspath(__file__)) + '/op3.launch'
         self.launchfile = launchfile
         self.randomize_port = randomize_port
         self.create()

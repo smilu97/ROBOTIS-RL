@@ -37,7 +37,7 @@ def serialize_imu(data):
 class Op3Controller(RosController):
     def __init__(
         self,
-        launchfile = './env/op3.launch',
+        launchfile = None,
         subscribe_link_states = True,
         subscribe_imu = True,
         subscribe_joint_states = True,

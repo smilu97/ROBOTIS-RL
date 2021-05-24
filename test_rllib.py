@@ -4,7 +4,7 @@ import ray
 from ray import tune
 from ray.rllib.agents.ppo import PPOTrainer
 from ray.tune.registry import register_env
-from rllib_config import config
+from ppo_config import config
 from env import OP3Env
 import gym
 import pybulletgym
