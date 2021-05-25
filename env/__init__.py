@@ -74,10 +74,10 @@ class OP3Env(gym.Env):
         p2 = self.action_bias + self.action_range
         return np.sum(position <= p1) + np.sum(position >= p2)
     
-    progress_bonus = 10.0
-    alive_bonus = 1.0
+    progress_bonus = 100.0
+    alive_bonus = 5.0
     velocity_cost = -20.0
-    height_bonus = 5000.0
+    height_bonus = 0.5
     # effort_cost = -0.25
     stuck_cost = -0.1
     
@@ -88,7 +88,7 @@ class OP3Env(gym.Env):
         self.prev_x = position.x
         self.prev_z = position.z
         progress = dx * self.progress_bonus
-        height = (-1 if dz < 0 else 0) * dz*dz * self.height_bonus
+        height = position.z * self.height_bonus
         alive = np.log(self.t/100 + 1) * self.alive_bonus
         velocity = np.sum(np.square(obs[self.sl : 2*self.sl])) * self.velocity_cost
         # effort = np.sum(np.abs(obs[2*self.sl : 3*self.sl])) * self.effort_cost
@@ -99,7 +99,7 @@ class OP3Env(gym.Env):
         return np.sum(rewards)
     
     def get_done(self, position):
-        return position.z < 0.2
+        return self.t >= (20000 / 40) or position.z < 0.2
     
     def get_position(self):
         target = 'robotis_op3::body_link'

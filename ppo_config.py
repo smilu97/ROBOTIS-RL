@@ -8,8 +8,8 @@ config = {
     "kl_coeff": 1.0,
     "num_sgd_iter": 30,
     "lr": 0.0003,
-    "sgd_minibatch_size": 10000,
-    "train_batch_size": 10000,
+    "sgd_minibatch_size": 2048,
+    "train_batch_size": 8192,
     "model": {
         "free_log_std": True
     },

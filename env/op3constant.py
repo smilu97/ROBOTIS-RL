@@ -9,7 +9,7 @@ indices = range(19)
 knee = 50
 hip_roll = 10 # side (left, right)
 hip_yaw = 50
-hip_pitch = 50 # front, back
+hip_pitch = 90 # front, back
 ank_pitch = 30
 ank_roll = 10
 
