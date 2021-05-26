@@ -50,13 +50,16 @@ class RayManager:
         Load a trained RLlib agent from the specified path. Call this before testing a trained agent.
         :param path: Path pointing to the agent's saved checkpoint (only used for RLlib agents)
         """
-        self.agent = ppo.PPOTrainer(config=self.config, env=self.env_class)
+        self.agent = PPOTrainer(config=self.config, env=self.env_class)
         self.agent.restore(path)
 
-    def test(self, n=-1):
+    def test(self, n=-1, render=True):
         """Test trained agent for a single episode. Return the episode reward"""
         # instantiate env class
         env = self.env_class(**self.env_config)
+
+        if render:
+            env.render(mode='human')
 
         while n != 0:
             # run until episode ends
@@ -73,7 +76,7 @@ class RayManager:
             n -= (n > 0)
 
 def main():
-    path = '~/checkpoints/op3-002/PPO_RobotisOp3-v0_b1556_00000_0_2021-05-24_00-58-19/checkpoint_000581/checkpoint-581'
+    path = '/home/smilu97/ray_results/PPO_2021-05-25_18-20-35/PPO_RobotisOp3-v0_765e9_00000_0_2021-05-25_18-20-35/checkpoint_001670/checkpoint-1670'
     ray.init()
     manager = RayManager()
     manager.load(path)
