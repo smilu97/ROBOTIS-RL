@@ -40,11 +40,20 @@ joint_ranges = s([
     sho_roll, # r_sho_roll 18
 ], indices)
 
-hip_pitch_bias = 45 # front
-knee_bias = 41 # human ordinary
-sho_roll_bias = 50 # down
-ank_pitch_bias = 30 # up
-hip_roll_bias = 5 # wide
+use_bias = True
+
+if use_bias:
+    hip_pitch_bias = 25 # front
+    knee_bias = 41 # human ordinary
+    sho_roll_bias = 0 # down
+    ank_pitch_bias = 30 # up
+    hip_roll_bias = 5 # wide
+else:
+    hip_pitch_bias = 0 # front
+    knee_bias = 0 # human ordinary
+    sho_roll_bias = 0 # down
+    ank_pitch_bias = 0 # up
+    hip_roll_bias = 0 # wide
 
 joint_bias = s([
     0, # head_tilt 0
