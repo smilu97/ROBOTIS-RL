@@ -9,27 +9,75 @@ from env import OP3Env
 import gym
 import pybulletgym
 
-def env_creator(env_config):
-    return OP3Env()
-
-register_env("RobotisOp3-v0", env_creator)
-# config["env"] = "RobotisOp3-v0"
+register_env("RobotisOp3-v0", lambda _: OP3Env())
+config["env"] = "RobotisOp3-v0"
 config["num_workers"] = 1
 
-ray.init()
-agent = PPOTrainer(config=config, env=OP3Env)
-agent.restore('~/checkpoints/op3-002/PPO_RobotisOp3-v0_b1556_00000_0_2021-05-24_00-58-19/checkpoint_000581/checkpoint-581')
+class RayManager:
+    def __init__(self):
+        self.env_class = OP3Env
+        self.config = config
+        self.save_dir = '~/.ckp'
+        self.env_config = {}
+        self.name = 'op3-21052611'
 
-# instantiate env class
-env = OP3Env()
+    def train(self, stop_criteria):
+        """
+        Train an RLlib PPO agent using tune until any of the configured stopping criteria is met.
+        :param stop_criteria: Dict with stopping criteria.
+            See https://docs.ray.io/en/latest/tune/api_docs/execution.html#tune-run
+        :return: Return the path to the saved agent (checkpoint) and tune's ExperimentAnalysis object
+            See https://docs.ray.io/en/latest/tune/api_docs/analysis.html#experimentanalysis-tune-experimentanalysis
+        """
+        analysis = ray.tune.run(
+            ppo.PPOTrainer,
+            config=self.config,
+            local_dir=self.save_dir,
+            stop=stop_criteria,
+            checkpoint_at_end=True,
+            name=self.name,
+            resume=False,
+        )
+        # list of lists: one list per checkpoint; each checkpoint list contains 1st the path, 2nd the metric value
+        checkpoints = analysis.get_trial_checkpoints_paths(trial=analysis.get_best_trial('episode_reward_mean'),
+                                                        metric='episode_reward_mean')
+        # retriev the checkpoint path; we only have a single checkpoint, so take the first one
+        checkpoint_path = checkpoints[0][0]
+        return checkpoint_path, analysis
 
-while True:
-    # run until episode ends
-    episode_reward = 0
-    done = False
-    env.render(mode='human')
-    obs = env.reset()
-    while not done:
-        action = agent.compute_action(obs)
-        obs, reward, done, info = env.step(action)
-        episode_reward += reward
+    def load(self, path):
+        """
+        Load a trained RLlib agent from the specified path. Call this before testing a trained agent.
+        :param path: Path pointing to the agent's saved checkpoint (only used for RLlib agents)
+        """
+        self.agent = ppo.PPOTrainer(config=self.config, env=self.env_class)
+        self.agent.restore(path)
+
+    def test(self, n=-1):
+        """Test trained agent for a single episode. Return the episode reward"""
+        # instantiate env class
+        env = self.env_class(**self.env_config)
+
+        while n != 0:
+            # run until episode ends
+            episode_reward = 0
+            done = False
+            obs = env.reset()
+            while not done:
+                action = self.agent.compute_action(obs)
+                obs, reward, done, info = env.step(action)
+                episode_reward += reward
+
+            print('reward:', episode_reward)
+
+            n -= (n > 0)
+
+def main():
+    path = '~/checkpoints/op3-002/PPO_RobotisOp3-v0_b1556_00000_0_2021-05-24_00-58-19/checkpoint_000581/checkpoint-581'
+    ray.init()
+    manager = RayManager()
+    manager.load(path)
+    manager.test()
+
+if __name__ == '__main__':
+    main()

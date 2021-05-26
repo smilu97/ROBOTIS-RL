@@ -23,7 +23,8 @@ config["env"] = "RobotisOp3-v0"
 
 tune.run(
     t,
-    resume=False,
+    name='PPO_2021-05-25_18-20-35',
+    resume=True,
     config=config,
     checkpoint_freq=10,
     checkpoint_at_end=True)
