@@ -17,7 +17,11 @@ def main():
     random_action = args.random_action
     fixed_port = args.fixed_port
 
-    env = gym.make('RobotisOp3-v0', random_port=not fixed_port, print_rewards=True)
+    env = gym.make('RobotisOp3-v0',
+        random_port=not fixed_port,
+        print_rewards=True,
+        use_bias=False,
+    )
     epochs = 1000
     episode = 1
     sl = env.action_space.shape[0]
