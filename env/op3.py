@@ -50,9 +50,6 @@ class Op3Controller(RosController):
         self.latest_joint_states = None
         self.prev_action = np.zeros(20)
 
-        self.updated_joint_states = False
-        self.updated_imu = False
-
         self.list_controllers = rospy.ServiceProxy('/robotis_op3/controller_manager/list_controllers', ListControllers)
         self.wait_controllers()
         self.publisher = rospy.Publisher('/robotis/set_joint_states', JointState, queue_size=20)
@@ -73,7 +70,9 @@ class Op3Controller(RosController):
 
     def reset(self):
         self.act(np.zeros(len(op3_module_names)))
-        self.updated_imu = False
+        self.latest_link_states = None
+        self.latest_imu = None
+        self.latest_joint_states = None
         super(Op3Controller, self).reset()
     
     def act(self, action):
@@ -96,15 +95,10 @@ class Op3Controller(RosController):
                     break
             if flag: break
     
-    def wait_joint_states(self):
-        self.updated_joint_states = False
+    def wait_states(self):
         while True:
-            time.sleep(0.01)
-            if self.updated_joint_states:
+            if self.latest_link_states is not None \
+                and self.latest_imu is not None \
+                and self.latest_joint_states is not None:
                 break
-    
-    def wait_imu(self):
-        while True:
-            if self.updated_imu:
-                break
-            time.sleep(0.1)
+            self.iterate(40)

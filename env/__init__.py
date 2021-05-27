@@ -17,13 +17,12 @@ from std_srvs.srv import Empty
 from sensor_msgs.msg import JointState, Imu
 
 class OP3Env(gym.Env):
-    def __init__(self, step_size=0.02, random_port=True, print_rewards=False):
+    def __init__(self, step_size=0.02, random_port=True, print_rewards=False, use_bias=True):
         self.print_rewards = print_rewards
         self.op3 = Op3Controller(random_port=random_port)
         self.reset_variables()
         self.observation_size = 3*len(op3c.op3_module_names)+10
         self.action_size = len(op3c.op3_module_names)
-        self.pause_sim = True
         self.reward_debug = np.zeros(5)
         
 
@@ -36,6 +35,9 @@ class OP3Env(gym.Env):
         self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(sl,), dtype=np.float32)
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(3*sl+10,), dtype=np.float32)
         self.step_size = step_size
+
+        if not use_bias:
+            self.action_bias[:] = 0
     
     def reset_variables(self):
         self.prev_x = 0.0
@@ -80,7 +82,6 @@ class OP3Env(gym.Env):
     height_bonus = 0.5
     # effort_cost = -0.25
     stuck_cost = -0.1
-    
 
     def get_reward(self, obs, position, done):
         dx = position.x - self.prev_x
@@ -110,13 +111,10 @@ class OP3Env(gym.Env):
         return 0.0
 
     def step(self, action):
-        # if self.pause_sim: self.op3.unpause()
-        action_modify_rate = 1.0
+        action_modify_rate = 0.5
         self.acc_action = self.acc_action * (1.0 - action_modify_rate) + action * action_modify_rate
         self.op3.act(self.acc_action * self.action_range + self.action_bias)
         self.op3.iterate(40)
-        # time.sleep(self.step_size)
-        # if self.pause_sim: self.op3.pause()
         position = self.get_position()
         done = self.get_done(position)
         obs = self.get_observation()
@@ -138,11 +136,9 @@ class OP3Env(gym.Env):
 
     def reset(self):
         self.reset_variables()
-        self.op3.pause()
         self.op3.reset_sim()
-        self.op3.unpause()
-        self.op3.wait_imu()
-        if self.pause_sim: self.op3.pause()
+        self.op3.reset()
+        self.op3.wait_states()
         return self.get_observation()
     
     def reset_op3(self):
