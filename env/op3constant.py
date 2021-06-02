@@ -15,8 +15,8 @@ ank_roll = 10
 
 head_tilt = 0
 sho_roll = 50 # shoulder down, up
-sho_pitch = 10
-el = 10
+sho_pitch = 50
+el = 50
 
 joint_ranges = s([
     head_tilt, # head_tilt 0

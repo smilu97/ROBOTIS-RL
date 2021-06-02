@@ -119,7 +119,7 @@ class RosController(object):
     def iterate(self, n):
         rospy.wait_for_service('/iterate')
         try:
-            self.target_clock = self.last_clock + n * 1000000 - 1000000
+            self.target_clock = self.last_clock + (n-1) * 500000
             req = StepRequest()
             req.iterations = n
             self.clock_event.clear()

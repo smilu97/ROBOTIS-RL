@@ -100,7 +100,7 @@ class OP3Env(gym.Env):
         return np.sum(rewards)
     
     def get_done(self, position):
-        return self.t >= (20000 / 40) or position.z < 0.2
+        return self.t >= (80000 / 40) or position.z < 0.2
     
     def get_position(self):
         target = 'robotis_op3::body_link'
@@ -111,10 +111,10 @@ class OP3Env(gym.Env):
         return 0.0
 
     def step(self, action):
-        action_modify_rate = 0.5
+        action_modify_rate = 0.3
         self.acc_action = self.acc_action * (1.0 - action_modify_rate) + action * action_modify_rate
         self.op3.act(self.acc_action * self.action_range + self.action_bias)
-        self.op3.iterate(40)
+        self.op3.iterate(20)
         position = self.get_position()
         done = self.get_done(position)
         obs = self.get_observation()
