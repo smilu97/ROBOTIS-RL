@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 parser = argparse.ArgumentParser()
 parser.add_argument('--random-action', '-r', action='store_true')
 parser.add_argument('--fixed-port', '-f', action='store_true')
+parser.add_argument('--blind', '-b', action='store_true')
 
 def main():
     args = parser.parse_args()
@@ -20,13 +21,13 @@ def main():
     env = gym.make('RobotisOp3-v0',
         random_port=not fixed_port,
         print_rewards=True,
-        use_bias=False,
+        use_bias=True,
     )
     epochs = 1000
     episode = 1
     sl = env.action_space.shape[0]
     
-    if True:
+    if not args.blind:
         env.render(mode='human')
 
     for num_epoch in range(epochs):
