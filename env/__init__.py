@@ -23,8 +23,7 @@ class OP3Env(gym.Env):
         self.reset_variables()
         self.observation_size = 3*len(op3c.op3_module_names)+10
         self.action_size = len(op3c.op3_module_names)
-        self.reward_debug = np.zeros(5)
-        
+        self.reward_debug = np.zeros(6)
 
         sl = len(op3c.op3_module_names)
         self.acc_action = np.zeros(sl)
@@ -41,6 +40,7 @@ class OP3Env(gym.Env):
     
     def reset_variables(self):
         self.prev_x = 0.0
+        self.prev_dx = 0.0
         self.prev_z = None
         self.t = 0
         self.op3.last_clock = 0
@@ -76,25 +76,31 @@ class OP3Env(gym.Env):
         p2 = self.action_bias + self.action_range
         return np.sum(position <= p1) + np.sum(position >= p2)
     
-    progress_bonus = 100.0
-    alive_bonus = 5.0
-    velocity_cost = -20.0
-    height_bonus = 0.5
-    # effort_cost = -0.25
-    stuck_cost = -0.1
+    progress_bonus = 120.0
+    accel_bonus = 600.0
+    alive_bonus = 0.05
+    outroute_cost = -1.0
+    velocity_cost = -2.0
+    height_bonus = 0.1
+    effort_cost = -0.0625
+    stuck_cost = -0.0
 
     def get_reward(self, obs, position, done):
         dx = position.x - self.prev_x
-        dz = 0 if self.prev_z is None else position.z - self.prev_z
+        ddx = dx - self.prev_dx
+        # dz = 0 if self.prev_z is None else position.z - self.prev_z
         self.prev_x = position.x
-        self.prev_z = position.z
+        # self.prev_z = position.z
+        self.prev_dx = dx
+        accel = ddx * self.accel_bonus
         progress = dx * self.progress_bonus
         height = position.z * self.height_bonus
-        alive = np.log(self.t/100 + 1) * self.alive_bonus
-        velocity = np.sum(np.square(obs[self.sl : 2*self.sl])) * self.velocity_cost
-        # effort = np.sum(np.abs(obs[2*self.sl : 3*self.sl])) * self.effort_cost
-        stuck = self.count_stuck(obs) * self.stuck_cost
-        rewards = np.array((progress, alive, velocity, height, stuck))
+        alive = self.alive_bonus
+        outroute = abs(position.y) * self.outroute_cost
+        # velocity = np.sum(np.abs(obs[self.sl : 2*self.sl])) * self.velocity_cost
+        effort = np.sum(np.abs(obs[2*self.sl : 3*self.sl])) * self.effort_cost
+        # stuck = self.count_stuck(obs) * self.stuck_cost
+        rewards = np.array((accel, progress, alive, outroute, effort, height))
         self.reward_debug += rewards
 
         return np.sum(rewards)
@@ -125,7 +131,7 @@ class OP3Env(gym.Env):
 
         if self.print_rewards and done:
             print('rewards:', self.reward_debug)
-            self.reward_debug = np.zeros(self.reward_debug.shape[0])
+            self.reward_debug[:] = 0
 
         return (
             obs,
