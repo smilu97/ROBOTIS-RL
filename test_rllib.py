@@ -76,7 +76,7 @@ class RayManager:
             n -= (n > 0)
 
 def main():
-    path = '/home/smilu97/ray_results/PPO_2021-05-25_18-20-35/PPO_RobotisOp3-v0_765e9_00000_0_2021-05-25_18-20-35/checkpoint_004590/checkpoint-4590'
+    path = '/home/smilu97/ray_results/strongperson/PPO_RobotisOp3-v0_ff59a_00000_0_2021-07-13_13-44-24/checkpoint_000550/checkpoint-550'
     ray.init()
     manager = RayManager()
     manager.load(path)

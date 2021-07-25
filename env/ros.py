@@ -70,10 +70,11 @@ class RosController(object):
         rospy.init_node('gym' + str(random.randint(1000, 1500)), anonymous=True)
 
         def clock_cb(data):
+            self.last_clock = clock_to_int(data)
             if self.last_clock >= self.target_clock:
                 self.clock_event.set()
             # print('last: {}, target: {}, set: {}'.format(self.last_clock, self.target_clock, self.last_clock >= self.target_clock))
-            self.last_clock = clock_to_int(data)
+            
         self.clock_subscriber = rospy.Subscriber('/clock', Clock, clock_cb, queue_size=10)
 
     def render(self, mode="human", close=False):
@@ -119,12 +120,14 @@ class RosController(object):
     def iterate(self, n):
         rospy.wait_for_service('/iterate')
         try:
-            self.target_clock = self.last_clock + (n-1) * 500000
+            self.target_clock = self.last_clock + n * 500000
             req = StepRequest()
             req.iterations = n
             self.clock_event.clear()
             self.iterate_proxy(req)
-            self.clock_event.wait()
+            if self.last_clock < self.target_clock:
+                self.clock_event.wait(0.5)
+
         except (rospy.ServiceException) as e:
             print ("/iterate service call failed")
 

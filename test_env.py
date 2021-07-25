@@ -12,16 +12,19 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--random-action', '-r', action='store_true')
 parser.add_argument('--fixed-port', '-f', action='store_true')
 parser.add_argument('--blind', '-b', action='store_true')
+parser.add_argument('--human-bias', '-c', action='store_true')
 
 def main():
     args = parser.parse_args()
     random_action = args.random_action
     fixed_port = args.fixed_port
+    human_bias = args.human_bias
 
     env = gym.make('RobotisOp3-v0',
         random_port=not fixed_port,
         print_rewards=True,
-        use_bias=True,
+        use_bias=False,
+        human_bias=human_bias,
     )
     epochs = 1000
     episode = 1

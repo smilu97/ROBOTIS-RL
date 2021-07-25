@@ -32,7 +32,7 @@ def serialize_imu(data):
         ot.x,ot.y,ot.z,ot.w,
         av.x,av.y,av.z,
         la.x,la.y,la.z,
-    ], dtype=np.float32) # len: 10
+    ], dtype=np.float64) # len: 10
 
 class Op3Controller(RosController):
     def __init__(

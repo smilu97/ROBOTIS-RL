@@ -1,5 +1,5 @@
 config = {
-    "num_workers": 6,
+    "num_workers": 8,
     "num_envs_per_worker": 1,
     "num_gpus": 1,
     "gamma": 0.995,
@@ -17,7 +17,8 @@ config = {
     "batch_mode": "complete_episodes",
     "observation_filter": "MeanStdFilter",
     "model": {
-        "fcnet_hiddens": [256, 256],
-        "fcnet_activation": "tanh",
+        "fcnet_hiddens": [225, 125],
+        "fcnet_activation": "relu",
+        "use_lstm": False
     },
 }

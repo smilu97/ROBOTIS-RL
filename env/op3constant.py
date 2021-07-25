@@ -1,24 +1,16 @@
-def s(lst, indices):
-    res = []
-    for i in indices: res.append(lst[i])
-    return res
-
-indices = [1,4,5,6,7,8,9,10,13,14,15,16,17,18]
-indices = range(19)
-
-knee = 50
-hip_roll = 10 # side (left, right)
-hip_yaw = 50
+knee = 90
+hip_roll = 50 # side (left, right)
+hip_yaw = 40
 hip_pitch = 90 # front, back
-ank_pitch = 30
-ank_roll = 10
+ank_pitch = 50
+ank_roll = 30
 
 head_tilt = 0
-sho_roll = 50 # shoulder down, up
-sho_pitch = 50
-el = 50
+sho_roll = 0 # shoulder down, up
+sho_pitch = 0
+el = 0
 
-joint_ranges = s([
+joint_ranges = [
     head_tilt, # head_tilt 0
     ank_pitch, # l_ank_pitch 1
     ank_roll, # l_ank_roll 2
@@ -38,15 +30,15 @@ joint_ranges = s([
     knee, # r_knee 16
     sho_pitch, # r_sho_pitch 17
     sho_roll, # r_sho_roll 18
-], indices)
+]
 
-hip_pitch_bias = 25 # front
-knee_bias = 41 # human ordinary
+hip_pitch_bias = 90 # front
+knee_bias = 90 # human ordinary
 sho_roll_bias = 0 # down
-ank_pitch_bias = 30 # up
+ank_pitch_bias = 40 # up
 hip_roll_bias = 5 # wide
 
-joint_bias = s([
+joint_bias = [
     0, # head_tilt 0
     ank_pitch_bias, # l_ank_pitch 1
     0, # l_ank_roll 2
@@ -66,9 +58,9 @@ joint_bias = s([
     -knee_bias, # r_knee 16
     0, # r_sho_pitch 17
     -sho_roll_bias, # r_sho_roll 18
-], indices)
+]
 
-op3_module_names = s([
+op3_module_names = [
     'head_tilt',
     'l_ank_pitch',
     'l_ank_roll',
@@ -88,9 +80,9 @@ op3_module_names = s([
     'r_knee',
     'r_sho_pitch',
     'r_sho_roll',
-], indices)
+]
 
-controller_names = s([
+controller_names = [
     "head_tilt_position",
     "l_ank_pitch_position",
     "l_ank_roll_position",
@@ -110,4 +102,4 @@ controller_names = s([
     "r_knee_position",
     "r_sho_pitch_position",
     "r_sho_roll_position"
-], indices)
+]

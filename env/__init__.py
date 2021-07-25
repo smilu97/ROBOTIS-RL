@@ -8,6 +8,9 @@ import gym
 
 from . import op3constant as op3c
 from .op3 import Op3Controller, serialize_imu
+from .params import params
+from .human_bias_reference import keyframes
+
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64
 from control_msgs.msg import JointControllerState
@@ -16,24 +19,44 @@ from controller_manager_msgs.srv import ListControllers
 from std_srvs.srv import Empty
 from sensor_msgs.msg import JointState, Imu
 
-class OP3Env(gym.Env):
-    def __init__(self, step_size=0.02, random_port=True, print_rewards=False, use_bias=True):
-        self.print_rewards = print_rewards
-        self.op3 = Op3Controller(random_port=random_port)
-        self.reset_variables()
-        self.observation_size = 3*len(op3c.op3_module_names)+10
-        self.action_size = len(op3c.op3_module_names)
-        self.reward_debug = np.zeros(6)
+progress_bonus = params.progress_bonus
+accel_bonus = params.accel_bonus
+alive_bonus = params.alive_bonus
+outroute_cost = params.outroute_cost
+velocity_cost = params.velocity_cost
+height_bonus = params.height_bonus
+effort_cost = params.effort_cost
+stuck_cost = params.stuck_cost
+action_modify_rate = params.action_modify_rate
+reference_cycle = params.reference_cycle
+reference_weight = params.reference_weight
 
-        sl = len(op3c.op3_module_names)
-        self.acc_action = np.zeros(sl)
-        self.sl = sl
-        self.op3c = op3c
+class OP3Env(gym.Env):
+    def __init__(
+        self,
+        human_bias=False,
+        step_size=0.02,
+        random_port=True,
+        print_rewards=False,
+        use_bias=True
+    ):
+    
+        self.print_rewards = print_rewards
+        self.human_bias = human_bias
+        self.step_size = step_size
+        self.num_mod = len(op3c.op3_module_names)
+
         self.action_bias = np.array(op3c.joint_bias) / 180 * np.pi
         self.action_range = np.array(op3c.joint_ranges) / 180 * np.pi
-        self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(sl,), dtype=np.float32)
-        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(3*sl+10,), dtype=np.float32)
-        self.step_size = step_size
+
+        self.acc_action = np.zeros(self.num_mod, dtype=np.float64)
+        self.reward_debug = np.zeros(3)
+        
+        self.op3 = Op3Controller(random_port=random_port)
+        self.reset_variables()
+
+        self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(12,), dtype=np.float64)
+        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(self.num_mod + 10,), dtype=np.float64)
 
         if not use_bias:
             self.action_bias[:] = 0
@@ -42,7 +65,7 @@ class OP3Env(gym.Env):
         self.prev_x = 0.0
         self.prev_dx = 0.0
         self.prev_z = None
-        self.t = 0
+        self.t = 0.0
         self.op3.last_clock = 0
         self.op3.latest_joint_states = None
 
@@ -59,31 +82,19 @@ class OP3Env(gym.Env):
                     joint_states.velocity[index] * 0.01,
                     joint_states.effort[index] * 0.05,
                 )
-        state = np.empty(3 * len(op3c.op3_module_names) + 10) # len: 70
-        pad = np.zeros(3)
-        for index, name in enumerate(op3c.op3_module_names):
-            jd = joint_dict.get(name, pad)
-            state[index] = jd[0]
-            state[self.sl + index] = jd[1]
-            state[2*self.sl + index] = jd[2]
-        state[(3*len(op3c.op3_module_names)):] = serialize_imu(self.op3.latest_imu)
+        self.positions  = np.array([joint_dict[name][0] for name in op3c.op3_module_names], dtype=np.float64)
+        # velocities = np.array([joint_dict[name][1] for name in op3c.op3_module_names])
+        self.efforts    = [joint_dict[name][2] for name in op3c.op3_module_names]
+
+        imu = serialize_imu(self.op3.latest_imu)
         
-        return state
+        return np.concatenate([self.positions, imu])
     
     def count_stuck(self, obs):
-        position = obs[:self.sl]
+        position = obs[:self.num_mod]
         p1 = self.action_bias - self.action_range
         p2 = self.action_bias + self.action_range
         return np.sum(position <= p1) + np.sum(position >= p2)
-    
-    progress_bonus = 120.0
-    accel_bonus = 600.0
-    alive_bonus = 0.05
-    outroute_cost = -1.0
-    velocity_cost = -2.0
-    height_bonus = 0.1
-    effort_cost = -0.0625
-    stuck_cost = -0.0
 
     def get_reward(self, obs, position, done):
         dx = position.x - self.prev_x
@@ -92,21 +103,24 @@ class OP3Env(gym.Env):
         self.prev_x = position.x
         # self.prev_z = position.z
         self.prev_dx = dx
-        accel = ddx * self.accel_bonus
-        progress = dx * self.progress_bonus
-        height = position.z * self.height_bonus
-        alive = self.alive_bonus
-        outroute = abs(position.y) * self.outroute_cost
-        # velocity = np.sum(np.abs(obs[self.sl : 2*self.sl])) * self.velocity_cost
-        effort = np.sum(np.abs(obs[2*self.sl : 3*self.sl])) * self.effort_cost
+
+        # accel = ddx * accel_bonus
+        progress = dx * progress_bonus
+        # height = position.z *.height_bonus
+        alive = alive_bonus
+        # outroute = abs(position.y) * outroute_cost
+        # velocity = np.sum(np.abs(obs[self.num_mod : 2*self.num_mod])) * velocity_cost
+        effort = np.sum(np.abs(self.efforts)) * effort_cost
         # stuck = self.count_stuck(obs) * self.stuck_cost
-        rewards = np.array((accel, progress, alive, outroute, effort, height))
+
+        rewards = np.array((progress, alive, effort))
         self.reward_debug += rewards
 
         return np.sum(rewards)
     
     def get_done(self, position):
-        return self.t >= (80000 / 40) or position.z < 0.2
+        return self.t >= 3.0
+        return self.t >= 50.0 or position.z < 0.16
     
     def get_position(self):
         target = 'robotis_op3::body_link'
@@ -115,19 +129,64 @@ class OP3Env(gym.Env):
             if name == target:
                 return link_states.pose[index].position
         return 0.0
+    
+    def get_human_bias_reference(self):
+        if not self.human_bias:
+            return 0.0
+
+        if len(keyframes) == 1:
+            return keyframes[0]
+
+        t = self.t / reference_cycle
+        t -= int(t)
+
+        position = t * len(keyframes)
+        
+        curr_index = min(len(keyframes) - 1, max(0, int(position)))
+        next_index = (curr_index + 1) % len(keyframes)
+        inter = position - int(position)
+        frame = keyframes[curr_index] * (1.0 - inter) + keyframes[next_index] * inter
+
+        print('perform {} and {}'.format(curr_index, next_index))
+
+        return reference_weight * frame
 
     def step(self, action):
-        action_modify_rate = 0.3
+        action_modify_rate = params.action_modify_rate
+
+        action = np.array([
+            0, # head_tilt 0
+            action[0], # l_ank_pitch 1
+            action[1], # l_ank_roll 2
+            0, # l_el 3
+            action[2], # l_hip_pitch 4
+            action[3], # l_hip_roll 5
+            action[4], # l_hip_yaw 6
+            action[5], # l_knee 7
+            0, # l_sho_pitch 8
+            0, # l_sho_roll 9
+            action[6], # r_ank_pitch 3
+            action[7], # r_ank_roll 11
+            0, # r_el 12
+            action[8], # r_hip_pitch 13
+            action[9], # r_hip_roll 14
+            action[10], # r_hip_yaw 15
+            action[11], # r_knee 16
+            0, # r_sho_pitch 17
+            0, # r_sho_roll 18
+        ], dtype=np.float64)
+
         self.acc_action = self.acc_action * (1.0 - action_modify_rate) + action * action_modify_rate
-        self.op3.act(self.acc_action * self.action_range + self.action_bias)
-        self.op3.iterate(20)
+        self.op3.act(self.acc_action * self.action_range + self.action_bias + self.get_human_bias_reference())
+        self.op3.iterate(10) # 200 Hz
+
         position = self.get_position()
         done = self.get_done(position)
         obs = self.get_observation()
         if np.any(np.isnan(obs)):
             raise Exception('robot broken down!')
         reward = self.get_reward(obs, position, done)
-        self.t += 1
+        self.t += 0.005
 
         if self.print_rewards and done:
             print('rewards:', self.reward_debug)
