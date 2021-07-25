@@ -49,14 +49,14 @@ class OP3Env(gym.Env):
         self.action_bias = np.array(op3c.joint_bias) / 180 * np.pi
         self.action_range = np.array(op3c.joint_ranges) / 180 * np.pi
 
-        self.acc_action = np.zeros(self.num_mod, dtype=np.float64)
+        self.acc_action = np.zeros(self.num_mod, dtype=np.float32)
         self.reward_debug = np.zeros(3)
         
         self.op3 = Op3Controller(random_port=random_port)
         self.reset_variables()
 
-        self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(12,), dtype=np.float64)
-        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(self.num_mod + 10,), dtype=np.float64)
+        self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(12,), dtype=np.float32)
+        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(self.num_mod + 10,), dtype=np.float32)
 
         if not use_bias:
             self.action_bias[:] = 0
@@ -82,7 +82,7 @@ class OP3Env(gym.Env):
                     joint_states.velocity[index] * 0.01,
                     joint_states.effort[index] * 0.05,
                 )
-        self.positions  = np.array([joint_dict[name][0] for name in op3c.op3_module_names], dtype=np.float64)
+        self.positions  = np.array([joint_dict[name][0] for name in op3c.op3_module_names], dtype=np.float32)
         # velocities = np.array([joint_dict[name][1] for name in op3c.op3_module_names])
         self.efforts    = [joint_dict[name][2] for name in op3c.op3_module_names]
 
@@ -174,7 +174,7 @@ class OP3Env(gym.Env):
             action[11], # r_knee 16
             0, # r_sho_pitch 17
             0, # r_sho_roll 18
-        ], dtype=np.float64)
+        ], dtype=np.float32)
 
         self.acc_action = self.acc_action * (1.0 - action_modify_rate) + action * action_modify_rate
         self.op3.act(self.acc_action * self.action_range + self.action_bias + self.get_human_bias_reference())

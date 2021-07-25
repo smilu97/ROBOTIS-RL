@@ -66,7 +66,7 @@ keyframes = np.array([
         0, # r_sho_pitch 17
         -0, # r_sho_roll 18
     ],
-], dtype=np.float64)
+], dtype=np.float32)
 
 keyframes = np.array([keyframes[0], keyframes[1], keyframes[0], symmetric(keyframes[1])])
 keyframes = keyframes * np.pi / 180.0
