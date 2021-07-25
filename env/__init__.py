@@ -119,7 +119,6 @@ class OP3Env(gym.Env):
         return np.sum(rewards)
     
     def get_done(self, position):
-        return self.t >= 3.0
         return self.t >= 50.0 or position.z < 0.16
     
     def get_position(self):
@@ -146,8 +145,6 @@ class OP3Env(gym.Env):
         next_index = (curr_index + 1) % len(keyframes)
         inter = position - int(position)
         frame = keyframes[curr_index] * (1.0 - inter) + keyframes[next_index] * inter
-
-        print('perform {} and {}'.format(curr_index, next_index))
 
         return reference_weight * frame
 
