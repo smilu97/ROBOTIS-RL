@@ -18,7 +18,7 @@ class RayManager:
         self.env_class = OP3Env
         self.config = config
         self.save_dir = '~/.ckp'
-        self.env_config = {}
+        self.env_config = {"use_bias": True, "human_bias": True}
         self.name = 'op3-21052611'
 
     def train(self, stop_criteria):
@@ -76,7 +76,7 @@ class RayManager:
             n -= (n > 0)
 
 def main():
-    path = '/home/smilu97/ray_results/strongperson/PPO_RobotisOp3-v0_ff59a_00000_0_2021-07-13_13-44-24/checkpoint_000550/checkpoint-550'
+    path = '/home/smilu97/ray_results/timeloop3/PPO_RobotisOp3-v0_608bb_00000_0_2021-07-29_19-11-44/checkpoint_000840/checkpoint-840'
     ray.init()
     manager = RayManager()
     manager.load(path)

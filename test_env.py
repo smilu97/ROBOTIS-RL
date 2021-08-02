@@ -23,7 +23,7 @@ def main():
     env = gym.make('RobotisOp3-v0',
         random_port=not fixed_port,
         print_rewards=True,
-        use_bias=False,
+        use_bias=True,
         human_bias=human_bias,
     )
     epochs = 1000
@@ -45,6 +45,7 @@ def main():
             else:
                 action = np.zeros(sl)
             obs, reward, done, info = env.step(action)
+            time.sleep(0.0)
             acc_reward += reward
             num_steps += 1
         

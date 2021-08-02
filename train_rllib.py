@@ -11,7 +11,7 @@ import gym
 import pybulletgym
 
 def env_creator(env_config):
-    return OP3Env(use_bias=False, human_bias=True)
+    return OP3Env(use_bias=True, human_bias=True)
 
 trainer = 'ppo'
 
@@ -23,8 +23,8 @@ config["env"] = "RobotisOp3-v0"
 
 tune.run(
     t,
-    name='loop',
-    resume=False,
+    name='timeloop3',
+    resume=True,
     config=config,
     checkpoint_freq=20,
     checkpoint_at_end=True)

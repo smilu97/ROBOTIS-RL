@@ -9,7 +9,6 @@ import gym
 from . import op3constant as op3c
 from .op3 import Op3Controller, serialize_imu
 from .params import params
-from .human_bias_reference import keyframes
 
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64
@@ -31,6 +30,12 @@ action_modify_rate = params.action_modify_rate
 reference_cycle = params.reference_cycle
 reference_weight = params.reference_weight
 
+def unsym_sin(x, w=0.35):
+    r = np.sin(x)
+    if r < 0:
+        r *= w
+    return r
+
 class OP3Env(gym.Env):
     def __init__(
         self,
@@ -45,6 +50,7 @@ class OP3Env(gym.Env):
         self.human_bias = human_bias
         self.step_size = step_size
         self.num_mod = len(op3c.op3_module_names)
+        self.T = 1.0
 
         self.action_bias = np.array(op3c.joint_bias) / 180 * np.pi
         self.action_range = np.array(op3c.joint_ranges) / 180 * np.pi
@@ -56,7 +62,7 @@ class OP3Env(gym.Env):
         self.reset_variables()
 
         self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(12,), dtype=np.float32)
-        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(self.num_mod + 10,), dtype=np.float32)
+        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(24,), dtype=np.float32)
 
         if not use_bias:
             self.action_bias[:] = 0
@@ -82,13 +88,14 @@ class OP3Env(gym.Env):
                     joint_states.velocity[index] * 0.01,
                     joint_states.effort[index] * 0.05,
                 )
-        self.positions  = np.array([joint_dict[name][0] for name in op3c.op3_module_names], dtype=np.float32)
-        # velocities = np.array([joint_dict[name][1] for name in op3c.op3_module_names])
-        self.efforts    = [joint_dict[name][2] for name in op3c.op3_module_names]
+        self.positions  = np.array([joint_dict[name][0] for name in op3c.op3_obs_module_names], dtype=np.float32)
+        # velocities = np.array([joint_dict[name][1] for name in op3c.op3_obs_module_names])
+        self.efforts    = [joint_dict[name][2] for name in op3c.op3_obs_module_names]
 
         imu = serialize_imu(self.op3.latest_imu)
         
-        return np.concatenate([self.positions, imu])
+        t = 2 * np.pi * self.t / self.T
+        return np.concatenate([self.positions, imu, [np.sin(t), np.cos(t)]])
     
     def count_stuck(self, obs):
         position = obs[:self.num_mod]
@@ -107,7 +114,7 @@ class OP3Env(gym.Env):
         # accel = ddx * accel_bonus
         progress = dx * progress_bonus
         # height = position.z *.height_bonus
-        alive = alive_bonus
+        alive = -5.0 if done else alive_bonus
         # outroute = abs(position.y) * outroute_cost
         # velocity = np.sum(np.abs(obs[self.num_mod : 2*self.num_mod])) * velocity_cost
         effort = np.sum(np.abs(self.efforts)) * effort_cost
@@ -119,7 +126,7 @@ class OP3Env(gym.Env):
         return np.sum(rewards)
     
     def get_done(self, position):
-        return self.t >= 50.0 or position.z < 0.16
+        return self.t >= 50.0 or position.z < 0.2
     
     def get_position(self):
         target = 'robotis_op3::body_link'
@@ -132,21 +139,34 @@ class OP3Env(gym.Env):
     def get_human_bias_reference(self):
         if not self.human_bias:
             return 0.0
-
-        if len(keyframes) == 1:
-            return keyframes[0]
-
-        t = self.t / reference_cycle
-        t -= int(t)
-
-        position = t * len(keyframes)
-        
-        curr_index = min(len(keyframes) - 1, max(0, int(position)))
-        next_index = (curr_index + 1) % len(keyframes)
-        inter = position - int(position)
-        frame = keyframes[curr_index] * (1.0 - inter) + keyframes[next_index] * inter
-
-        return reference_weight * frame
+            
+        t = 2 * np.pi * self.t / self.T
+        ank_pitch = 30
+        hip_pitch = 60
+        hip_roll  = 10
+        knee      = 45
+        sho_pitch = 45
+        return np.array([
+            0, # head_tilt 0
+            -ank_pitch * unsym_sin(t, -0.35), # l_ank_pitch 1
+            0, # l_ank_roll 2
+            0, # l_el 3
+            -hip_pitch * unsym_sin(t), # l_hip_pitch 4
+            hip_roll * unsym_sin(t, 1), # l_hip_roll 5
+            0, # l_hip_yaw 6
+            knee * unsym_sin(t, 0), # l_knee 7
+            sho_pitch * unsym_sin(t, 1), # l_sho_pitch 8
+            0, # l_sho_roll 9
+            ank_pitch * unsym_sin(t+np.pi, -0.35), # r_ank_pitch 10
+            0, # r_ank_roll 11
+            0, # r_el 12
+            hip_pitch * unsym_sin(t+np.pi), # r_hip_pitch 13
+            hip_roll * unsym_sin(t, 1), # r_hip_roll 14
+            0, # r_hip_yaw 15
+            -knee * unsym_sin(t+np.pi, 0), # r_knee 16
+            -sho_pitch * unsym_sin(t+np.pi, 1), # r_sho_pitch 17
+            0, # r_sho_roll 18
+        ], dtype=np.float32) / 180 * np.pi * 0.5
 
     def step(self, action):
         action_modify_rate = params.action_modify_rate
@@ -174,8 +194,11 @@ class OP3Env(gym.Env):
         ], dtype=np.float32)
 
         self.acc_action = self.acc_action * (1.0 - action_modify_rate) + action * action_modify_rate
-        self.op3.act(self.acc_action * self.action_range + self.action_bias + self.get_human_bias_reference())
-        self.op3.iterate(10) # 200 Hz
+        action_msg = self.acc_action * self.action_range + self.action_bias + self.get_human_bias_reference()
+        action_msg = np.minimum(np.pi / 2, action_msg)
+        action_msg = np.maximum(-np.pi / 2, action_msg)
+        self.op3.act(action_msg)
+        self.op3.iterate(5) # 200 Hz
 
         position = self.get_position()
         done = self.get_done(position)

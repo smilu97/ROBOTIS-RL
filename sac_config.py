@@ -9,17 +9,17 @@ config = {
     "observation_filter": "MeanStdFilter",
     "Q_model": {
         "fcnet_activation": "relu",
-        "fcnet_hiddens": [256, 256]
+        "fcnet_hiddens": [256, 140]
     },
     "policy_model": {
         "fcnet_activation": "relu",
-        "fcnet_hiddens": [256, 256]
+        "fcnet_hiddens": [256, 140]
     },
     "tau": 0.005,
     "target_entropy": "auto",
     "target_network_update_freq": 1,
-    "train_batch_size": 256,
-    "timesteps_per_iteration": 1000,
+    "train_batch_size": 16384,
+    "timesteps_per_iteration": 16384,
     "learning_starts": 10000,
     "optimization": {
         "actor_learning_rate": 0.0003,

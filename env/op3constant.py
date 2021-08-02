@@ -1,9 +1,11 @@
-knee = 90
-hip_roll = 50 # side (left, right)
-hip_yaw = 40
-hip_pitch = 90 # front, back
-ank_pitch = 50
-ank_roll = 30
+import numpy as np
+
+knee = 20
+hip_roll = 20 # side (left, right)
+hip_yaw = 20
+hip_pitch = 20 # front, back
+ank_pitch = 20
+ank_roll = 20
 
 head_tilt = 0
 sho_roll = 0 # shoulder down, up
@@ -32,11 +34,11 @@ joint_ranges = [
     sho_roll, # r_sho_roll 18
 ]
 
-hip_pitch_bias = 90 # front
-knee_bias = 90 # human ordinary
-sho_roll_bias = 0 # down
-ank_pitch_bias = 40 # up
-hip_roll_bias = 5 # wide
+hip_pitch_bias = 20 # front
+knee_bias = 0 # human ordinary
+sho_roll_bias = 60 # down
+ank_pitch_bias = 3 # up
+hip_roll_bias = 0 # wide
 
 joint_bias = [
     0, # head_tilt 0
@@ -49,7 +51,7 @@ joint_bias = [
     knee_bias, # l_knee 7
     0, # l_sho_pitch 8
     sho_roll_bias, # l_sho_roll 9
-    -ank_pitch_bias, # r_ank_pitch 3
+    -ank_pitch_bias, # r_ank_pitch 10
     0, # r_ank_roll 11
     0, # r_el 12
     hip_pitch_bias, # r_hip_pitch 13
@@ -80,6 +82,21 @@ op3_module_names = [
     'r_knee',
     'r_sho_pitch',
     'r_sho_roll',
+]
+
+op3_obs_module_names = [
+    'l_ank_pitch',
+    'l_ank_roll',
+    'l_hip_pitch',
+    'l_hip_roll',
+    'l_hip_yaw',
+    'l_knee',
+    'r_ank_pitch',
+    'r_ank_roll',
+    'r_hip_pitch',
+    'r_hip_roll',
+    'r_hip_yaw',
+    'r_knee',
 ]
 
 controller_names = [

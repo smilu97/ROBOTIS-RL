@@ -82,6 +82,13 @@ class Op3Controller(RosController):
         state.position = action[:sl]
         self.publisher.publish(state)
     
+    def send_action(self, action):
+        state = JointState()
+        state.name = op3_module_names
+        sl = len(op3_module_names)
+        state.position = action[:sl]
+        self.publisher.publish(state)
+        
     def wait_controllers(self):
         rospy.wait_for_service('/robotis_op3/controller_manager/list_controllers')
         ctrls = None
