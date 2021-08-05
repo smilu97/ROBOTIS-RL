@@ -192,13 +192,14 @@ class OP3Env(gym.Env):
             0, # r_sho_pitch 17
             0, # r_sho_roll 18
         ], dtype=np.float32)
+        action = np.minimum(1.0, np.maximum(-1.0, action))
 
         self.acc_action = self.acc_action * (1.0 - action_modify_rate) + action * action_modify_rate
         action_msg = self.acc_action * self.action_range + self.action_bias + self.get_human_bias_reference()
         action_msg = np.minimum(np.pi / 2, action_msg)
         action_msg = np.maximum(-np.pi / 2, action_msg)
         self.op3.act(action_msg)
-        self.op3.iterate(5) # 200 Hz
+        self.op3.iterate(10) # 200 Hz
 
         position = self.get_position()
         done = self.get_done(position)

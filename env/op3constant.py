@@ -1,11 +1,11 @@
 import numpy as np
 
-knee = 20
-hip_roll = 20 # side (left, right)
-hip_yaw = 20
-hip_pitch = 20 # front, back
-ank_pitch = 20
-ank_roll = 20
+knee = 30
+hip_roll = 15 # side (left, right)
+hip_yaw = 30
+hip_pitch = 30 # front, back
+ank_pitch = 30
+ank_roll = 30
 
 head_tilt = 0
 sho_roll = 0 # shoulder down, up
@@ -34,10 +34,10 @@ joint_ranges = [
     sho_roll, # r_sho_roll 18
 ]
 
-hip_pitch_bias = 20 # front
+hip_pitch_bias = 0 # front
 knee_bias = 0 # human ordinary
 sho_roll_bias = 60 # down
-ank_pitch_bias = 3 # up
+ank_pitch_bias = 0 # up
 hip_roll_bias = 0 # wide
 
 joint_bias = [

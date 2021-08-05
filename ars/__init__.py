@@ -1,6 +1,5 @@
 # author: smilu97
 
-import ray
 import gym
 import numpy as np
 
