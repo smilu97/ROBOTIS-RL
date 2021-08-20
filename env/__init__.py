@@ -6,7 +6,7 @@ import rospy
 import time
 import gym
 
-from . import op3constant as op3c
+from . import constants as op3c
 from .op3 import Op3Controller, serialize_imu
 from .params import params
 

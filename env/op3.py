@@ -5,7 +5,7 @@ import sys
 import rospy
 import time
 
-from .op3constant import op3_module_names, controller_names
+from .constants import op3_module_names, controller_names
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64
 from control_msgs.msg import JointControllerState
