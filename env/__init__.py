@@ -18,6 +18,14 @@ from controller_manager_msgs.srv import ListControllers
 from std_srvs.srv import Empty
 from sensor_msgs.msg import JointState, Imu
 
+from .middlewares import apply_middlewares
+from .middlewares.add import Add
+from .middlewares.multiply import Multiply
+from .middlewares.exp_move import ExponentialMove
+from .middlewares.map_leg_action import MapLegAction
+from .middlewares.minmax_clip import MinMaxClip
+from .middlewares.human_bias_action import HumanBiasAction
+
 progress_bonus = params.progress_bonus
 accel_bonus = params.accel_bonus
 alive_bonus = params.alive_bonus
@@ -63,6 +71,16 @@ class OP3Env(gym.Env):
 
         self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(12,), dtype=np.float32)
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(24,), dtype=np.float32)
+
+        self.action_middlewares = [
+            MapLegAction(self),
+            MinMaxClip(self, -1.0, 1.0),
+            ExponentialMove(self, params.action_modify_rate),
+            Multiply(self, self.action_range),
+            Add(self, self.action_bias),
+            HumanBiasAction(self) if human_bias else None,
+            MinMaxClip(self, -np.pi/2, np.pi/2),
+        ]
 
         if not use_bias:
             self.action_bias[:] = 0
@@ -126,80 +144,21 @@ class OP3Env(gym.Env):
     def get_done(self, position):
         return self.t >= 50.0 or position.z < 0.2
     
-    def get_position(self):
+    def get_body_position(self):
         target = 'robotis_op3::body_link'
         link_states = self.op3.link_states.latest
         for index, name in enumerate(link_states.name):
             if name == target:
                 return link_states.pose[index].position
         return 0.0
-    
-    def get_human_bias_reference(self):
-        if not self.human_bias:
-            return 0.0
-            
-        t = 2 * np.pi * self.t / self.T
-        ank_pitch = 30
-        hip_pitch = 60
-        hip_roll  = 10
-        knee      = 45
-        sho_pitch = 45
-        return np.array([
-            0, # head_tilt 0
-            -ank_pitch * unsym_sin(t, -0.35), # l_ank_pitch 1
-            0, # l_ank_roll 2
-            0, # l_el 3
-            -hip_pitch * unsym_sin(t), # l_hip_pitch 4
-            hip_roll * unsym_sin(t, 1), # l_hip_roll 5
-            0, # l_hip_yaw 6
-            knee * unsym_sin(t, 0), # l_knee 7
-            sho_pitch * unsym_sin(t, 1), # l_sho_pitch 8
-            0, # l_sho_roll 9
-            ank_pitch * unsym_sin(t+np.pi, -0.35), # r_ank_pitch 10
-            0, # r_ank_roll 11
-            0, # r_el 12
-            hip_pitch * unsym_sin(t+np.pi), # r_hip_pitch 13
-            hip_roll * unsym_sin(t, 1), # r_hip_roll 14
-            0, # r_hip_yaw 15
-            -knee * unsym_sin(t+np.pi, 0), # r_knee 16
-            -sho_pitch * unsym_sin(t+np.pi, 1), # r_sho_pitch 17
-            0, # r_sho_roll 18
-        ], dtype=np.float32) / 180 * np.pi * 0.5
 
     def step(self, action):
-        action_modify_rate = params.action_modify_rate
-
-        action = np.array([
-            0, # head_tilt 0
-            action[0], # l_ank_pitch 1
-            action[1], # l_ank_roll 2
-            0, # l_el 3
-            action[2], # l_hip_pitch 4
-            action[3], # l_hip_roll 5
-            action[4], # l_hip_yaw 6
-            action[5], # l_knee 7
-            0, # l_sho_pitch 8
-            0, # l_sho_roll 9
-            action[6], # r_ank_pitch 3
-            action[7], # r_ank_roll 11
-            0, # r_el 12
-            action[8], # r_hip_pitch 13
-            action[9], # r_hip_roll 14
-            action[10], # r_hip_yaw 15
-            action[11], # r_knee 16
-            0, # r_sho_pitch 17
-            0, # r_sho_roll 18
-        ], dtype=np.float32)
-        action = np.minimum(1.0, np.maximum(-1.0, action))
-
-        self.acc_action = self.acc_action * (1.0 - action_modify_rate) + action * action_modify_rate
-        action_msg = self.acc_action * self.action_range + self.action_bias + self.get_human_bias_reference()
-        action_msg = np.minimum(np.pi / 2, action_msg)
-        action_msg = np.maximum(-np.pi / 2, action_msg)
-        self.op3.act(action_msg)
+        action = apply_middlewares(action, self.action_middlewares)
+        
+        self.op3.act(action)
         self.op3.iterate(10) # 200 Hz
 
-        position = self.get_position()
+        position = self.get_body_position()
         done = self.get_done(position)
         obs = self.get_observation()
         if np.any(np.isnan(obs)):
@@ -221,6 +180,10 @@ class OP3Env(gym.Env):
     def reset(self):
         self.reset_variables()
         self.op3.reset()
+
+        for mid in self.action_middlewares:
+            if mid is not None: mid.reset()
+
         return self.get_observation()
     
     def reset_op3(self):

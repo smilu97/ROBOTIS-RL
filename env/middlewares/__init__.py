@@ -11,5 +11,6 @@ class Middleware:
 def apply_middlewares(payload, middlewares):
     context = dict()
     for middleware in middlewares:
-        payload = middleware(payload, context)
+        if middleware is not None:
+            payload = middleware(payload, context)
     return payload

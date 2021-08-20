@@ -7,7 +7,7 @@ class Params:
     height_bonus = 0.1
     effort_cost = -0.0625
     stuck_cost = -0.0
-    action_modify_rate = 0.05
+    action_modify_rate = 0.95
     reference_cycle = 1.0
     reference_weight = 1.0
     max_step_size = 0.001
