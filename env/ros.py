@@ -18,9 +18,13 @@ from op3_gym.srv import Step, StepRequest
 from controller_manager_msgs.srv import ListControllers
 from std_srvs.srv import Empty
 
-def clock_to_int(c):
-    c = c.clock
-    return c.secs * 1000000000 + c.nsecs
+from .proxy.unpause import UnpauseProxy
+from .proxy.pause import PauseProxy
+from .proxy.reset_world import ResetWorldProxy
+from .proxy.reset_simulation import ResetSimulationProxy
+from .proxy.delete_model import DeleteModelProxy
+from .proxy.iterate import IterateProxy
+from .proxy.spawn_op3 import SpawnOp3Proxy
 
 class RosController(object):
     def __init__(self, launchfile, randomize_port=True):
@@ -30,22 +34,18 @@ class RosController(object):
         self.randomize_port = randomize_port
         self.create()
 
-        self.unpause_proxy = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
-        self.pause_proxy = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
-        self.reset_proxy = rospy.ServiceProxy('/gazebo/reset_world', Empty)
-        self.reset_sim_proxy = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
-        self.delete_model_proxy = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
-        self.iterate_proxy = rospy.ServiceProxy('/iterate', Step)
-        self.spawn_model_proxy = rospy.ServiceProxy('/gazebo/spawn_urdf_model', SpawnModel)
+        self.unpause = UnpauseProxy()
+        self.pause = PauseProxy()
+        self.reset_world = ResetWorldProxy()
+        self.reset_sim = ResetSimulationProxy()
+        self.iterate = IterateProxy()
+        self.spawn_model = SpawnOp3Proxy()
+        self.delete_model = DeleteModelProxy('robotis_op3')
 
     def __del__(self):
         self.destroy()
     
     def create(self):
-        self.last_clock = 0
-        self.target_clock = 0
-        self.clock_event = threading.Event()
-
         if self.randomize_port:
             random_number = random.randint(10000, 15000)
             # self.port = "11311"#str(random_number) #os.environ["ROS_PORT_SIM"]
@@ -68,14 +68,6 @@ class RosController(object):
             self.launchfile
         ])
         rospy.init_node('gym' + str(random.randint(1000, 1500)), anonymous=True)
-
-        def clock_cb(data):
-            self.last_clock = clock_to_int(data)
-            if self.last_clock >= self.target_clock:
-                self.clock_event.set()
-            # print('last: {}, target: {}, set: {}'.format(self.last_clock, self.target_clock, self.last_clock >= self.target_clock))
-            
-        self.clock_subscriber = rospy.Subscriber('/clock', Clock, clock_cb, queue_size=10)
 
     def render(self, mode="human", close=False):
         if close:
@@ -102,67 +94,6 @@ class RosController(object):
                 subprocess.check_output(['killall', '-9', name])
             except:
                 pass
-
-    def unpause(self):
-        rospy.wait_for_service('/gazebo/unpause_physics')
-        try:
-            self.unpause_proxy()
-        except (rospy.ServiceException) as e:
-            print ("/gazebo/unpause_physics service call failed")
-    
-    def pause(self):
-        rospy.wait_for_service('/gazebo/pause_physics')
-        try:
-            self.pause_proxy()
-        except (rospy.ServiceException) as e:
-            print ("/gazebo/pause_physics service call failed")
-    
-    def iterate(self, n):
-        rospy.wait_for_service('/iterate')
-        try:
-            self.target_clock = self.last_clock + n * 500000
-            req = StepRequest()
-            req.iterations = n
-            self.clock_event.clear()
-            self.iterate_proxy(req)
-            if self.last_clock < self.target_clock:
-                self.clock_event.wait(0.5)
-
-        except (rospy.ServiceException) as e:
-            print ("/iterate service call failed")
-
-    def reset_world(self):
-        rospy.wait_for_service('/gazebo/reset_world')
-        try:
-            self.reset_proxy()
-        except (rospy.ServiceException) as e:
-            print ("/gazebo/reset_world service call failed")
-    
-    def reset_sim(self):
-        rospy.wait_for_service('/gazebo/reset_simulation')
-        try:
-            self.reset_sim_proxy()
-        except (rospy.ServiceException) as e:
-            print ("/gazebo/reset_simulation service call failed")
-    
-    def delete_model(self):
-        rospy.wait_for_service('/gazebo/delete_model')
-        try:
-            self.delete_model_proxy('robotis_op3')
-        except (rospy.ServiceException) as e:
-            print ("/gazebo/delete_model service call failed")
-    
-    def spawn_model(self):
-        rospy.wait_for_service('/gazebo/spawn_urdf_model')
-        try:
-            model_xml = rospy.get_param('robot_description')
-            initial_pose = Pose()
-            initial_pose.position.x = 0
-            initial_pose.position.y = 0
-            initial_pose.position.z = 0.285
-            self.spawn_model_proxy('robotis_op3', model_xml, '', initial_pose, 'world')
-        except (rospy.ServiceException) as e:
-            print ("/gazebo/spawn_urdf_model service call failed")
 
     def reset(self):
         # self.pause()
