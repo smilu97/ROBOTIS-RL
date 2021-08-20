@@ -12,6 +12,7 @@ class RosProxy:
     def __call__(self, *args, **kwargs):
         rospy.wait_for_service(self.path)
         try:
-            self.proxy(*args, **kwargs)
+            return self.proxy(*args, **kwargs)
         except (rospy.ServiceException) as e:
             print("{} service call failed".format(self.path))
+            raise e
