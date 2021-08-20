@@ -146,8 +146,10 @@ class OP3Env(gym.Env):
         position = self.get_body_position()
         done = self.get_done(position)
         obs = self.get_observation()
+
         if np.any(np.isnan(obs)):
             raise Exception('robot broken down!')
+            
         reward = self.get_reward(obs, position, done)
         self.t += 0.005
 
