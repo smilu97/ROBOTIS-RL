@@ -1,22 +1,9 @@
 import numpy as np
-import os
-import subprocess
-import sys
-import rospy
-import time
 import gym
 
 from . import constants as op3c
 from .op3 import Op3Controller, serialize_imu
 from .params import params
-
-from geometry_msgs.msg import Twist
-from std_msgs.msg import Float64
-from control_msgs.msg import JointControllerState
-from gazebo_msgs.msg import LinkStates
-from controller_manager_msgs.srv import ListControllers
-from std_srvs.srv import Empty
-from sensor_msgs.msg import JointState, Imu
 
 from .middlewares import apply_middlewares
 from .middlewares.add import Add
@@ -62,8 +49,6 @@ class OP3Env(gym.Env):
 
         self.action_bias = np.array(op3c.joint_bias) / 180 * np.pi
         self.action_range = np.array(op3c.joint_ranges) / 180 * np.pi
-
-        self.acc_action = np.zeros(self.num_mod, dtype=np.float32)
         self.reward_debug = np.zeros(3)
         
         self.op3 = Op3Controller(random_port=random_port)
@@ -78,7 +63,7 @@ class OP3Env(gym.Env):
             ExponentialMove(self, params.action_modify_rate),
             Multiply(self, self.action_range),
             Add(self, self.action_bias),
-            HumanBiasAction(self) if human_bias else None,
+            HumanBiasAction(self, T=self.T) if human_bias else None,
             MinMaxClip(self, -np.pi/2, np.pi/2),
         ]
 

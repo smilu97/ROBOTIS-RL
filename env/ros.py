@@ -4,19 +4,6 @@ import random
 import subprocess
 import sys
 import rospy
-import rospkg
-import time
-import threading
-
-from geometry_msgs.msg import Twist, Pose
-from std_msgs.msg import Float64
-from control_msgs.msg import JointControllerState
-from gazebo_msgs.msg import LinkStates
-from rosgraph_msgs.msg import Clock
-from gazebo_msgs.srv import DeleteModel, SpawnModel
-from op3_gym.srv import Step, StepRequest
-from controller_manager_msgs.srv import ListControllers
-from std_srvs.srv import Empty
 
 from .proxy.unpause import UnpauseProxy
 from .proxy.pause import PauseProxy

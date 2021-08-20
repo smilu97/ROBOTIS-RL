@@ -36,7 +36,7 @@ joint_ranges = [
 
 hip_pitch_bias = 0 # front
 knee_bias = 0 # human ordinary
-sho_roll_bias = 60 # down
+sho_roll_bias = 0 # down
 ank_pitch_bias = 0 # up
 hip_roll_bias = 0 # wide
 

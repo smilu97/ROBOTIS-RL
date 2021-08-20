@@ -1,19 +1,8 @@
 import numpy as np
-import os
-import subprocess
-import sys
 import rospy
-import time
 
 from .constants import op3_module_names, controller_names
-from geometry_msgs.msg import Twist
-from std_msgs.msg import Float64
-from control_msgs.msg import JointControllerState
-from gazebo_msgs.msg import LinkStates
-from controller_manager_msgs.srv import ListControllers
-from robotis_controller_msgs.srv import SetJointModule, SetJointModuleRequest
-from std_srvs.srv import Empty
-from sensor_msgs.msg import JointState, Imu
+from sensor_msgs.msg import JointState
 
 from .ros import RosController
 from .proxy.list_controllers import ListControllersProxy
