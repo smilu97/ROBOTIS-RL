@@ -6,9 +6,10 @@ class TrajectoryGenerator(Middleware):
     '''
     introduced in http://proceedings.mlr.press/v100/yang20a/yang20a.pdf
     '''
-    def __init__(self, env, ce, a_stance, a_lift, pi_stance):
+    def __init__(self, env, length, ce, a_stance, a_lift, pi_stance):
         super().__init__(env)
         self.ce = ce
+        self.length = length
         self.a_stance = a_stance
         self.a_lift = a_lift
         self.pi_stance = pi_stance
@@ -30,4 +31,4 @@ class TrajectoryGenerator(Middleware):
             (lifts   * self.a_lift   * np.sin(lift_pi  ))
 
     def __call__(self, payload, context):
-        return payload + self.generate(payload)
+        return payload[self.length:] + self.generate(payload[:self.length])
