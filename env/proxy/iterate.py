@@ -25,6 +25,10 @@ class IterateProxy(RosProxy):
             
         self.clock_subscriber = rospy.Subscriber('/clock', Clock, clock_cb, queue_size=10)
     
+    def reset(self):
+        self.last_clock = 0
+        self.target_clock = 0
+    
     def __call__(self, n):
         self.target_clock = self.last_clock + n * 500000
         req = StepRequest()

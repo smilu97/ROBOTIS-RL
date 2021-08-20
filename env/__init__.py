@@ -72,14 +72,12 @@ class OP3Env(gym.Env):
         self.prev_dx = 0.0
         self.prev_z = None
         self.t = 0.0
-        self.op3.last_clock = 0
-        self.op3.latest_joint_states = None
 
     def render(self, **kwargs):
         self.op3.render(**kwargs)
     
     def get_observation(self):
-        joint_states = self.op3.latest_joint_states
+        joint_states = self.op3.joint_states.latest
         joint_dict = {}
         if joint_states is not None:
             for index, name in enumerate(joint_states.name):
@@ -92,7 +90,7 @@ class OP3Env(gym.Env):
         # velocities = np.array([joint_dict[name][1] for name in op3c.op3_obs_module_names])
         self.efforts    = [joint_dict[name][2] for name in op3c.op3_obs_module_names]
 
-        imu = serialize_imu(self.op3.latest_imu)
+        imu = serialize_imu(self.op3.imu.latest)
         
         t = 2 * np.pi * self.t / self.T
         return np.concatenate([self.positions, imu, [np.sin(t), np.cos(t)]])
@@ -130,7 +128,7 @@ class OP3Env(gym.Env):
     
     def get_position(self):
         target = 'robotis_op3::body_link'
-        link_states = self.op3.latest_link_states
+        link_states = self.op3.link_states.latest
         for index, name in enumerate(link_states.name):
             if name == target:
                 return link_states.pose[index].position
@@ -222,9 +220,7 @@ class OP3Env(gym.Env):
 
     def reset(self):
         self.reset_variables()
-        self.op3.reset_sim()
         self.op3.reset()
-        self.op3.wait_states()
         return self.get_observation()
     
     def reset_op3(self):

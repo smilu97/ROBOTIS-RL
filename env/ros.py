@@ -45,6 +45,9 @@ class RosController(object):
     def __del__(self):
         self.destroy()
     
+    def reset(self):
+        self.iterate.reset() # iterate is stateful
+    
     def create(self):
         if self.randomize_port:
             random_number = random.randint(10000, 15000)
@@ -94,8 +97,3 @@ class RosController(object):
                 subprocess.check_output(['killall', '-9', name])
             except:
                 pass
-
-    def reset(self):
-        # self.pause()
-        self.reset_sim()
-        self.reset_world()
