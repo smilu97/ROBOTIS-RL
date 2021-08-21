@@ -6,10 +6,15 @@ class TrajectoryGenerator(Middleware):
     '''
     introduced in http://proceedings.mlr.press/v100/yang20a/yang20a.pdf
     '''
-    def __init__(self, env, length, ce, a_stance, a_lift, pi_stance):
+    def __init__(self, env, ce, a_stance, a_lift, pi_stance):
         super().__init__(env)
+
+        assert(len(ce) == len(a_stance))
+        assert(len(a_stance) == len(a_lift))
+        assert(len(a_lift) == len(pi_stance))
+
         self.ce = ce
-        self.length = length
+        self.length = len(ce)
         self.a_stance = a_stance
         self.a_lift = a_lift
         self.pi_stance = pi_stance
