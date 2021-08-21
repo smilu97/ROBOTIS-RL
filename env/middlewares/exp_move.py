@@ -19,7 +19,7 @@ class ExponentialMove(Middleware):
         if self.latest is None:
             self.latest = payload
         else:
-            rate_ = 1 - self.rate
+            rate_ = np.sqrt(1 - np.square(self.rate))
             self.latest = (self.latest * self.rate) + (payload * rate_)
 
         return self.latest
