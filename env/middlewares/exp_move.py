@@ -10,10 +10,10 @@ class ExponentialMove(Middleware):
     def __init__(self, env, rate):
         super().__init__(env)
         self.rate = rate
-        self.latest = None
+        self.latest = 0.0
     
     def reset(self):
-        self.latest = None
+        self.latest = 0.0
     
     def __call__(self, payload, context):
         if self.latest is None:
