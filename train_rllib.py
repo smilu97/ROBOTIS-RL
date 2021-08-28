@@ -15,26 +15,26 @@ import pybulletgym
 def env_creator(env_config):
     return OP3Env(use_bias=False, human_bias=True)
 
-trainer = 'sac'
+trainer_name = 'ars'
 
 config = {
     'ppo': ppo_config,
     'sac': sac_config,
     'ars': ars_config,
-}.get(trainer, ppo_config)
+}.get(trainer_name, ppo_config)
 
 trainer = {
     'ppo': PPOTrainer,
     'sac': SACTrainer,
     'ars': ARSTrainer,
-}.get(trainer, PPOTrainer)
+}.get(trainer_name, PPOTrainer)
 
 register_env("RobotisOp3-v0", env_creator)
 config["env"] = "RobotisOp3-v0"
 
 tune.run(
-    t,
-    name='sac_bias',
+    trainer,
+    name='ars_naive',
     resume=False,
     config=config,
     checkpoint_freq=20,

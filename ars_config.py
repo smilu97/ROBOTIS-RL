@@ -1,7 +1,7 @@
 config = {
     "action_noise_std": 0.0,
     "noise_stdev": 0.02,  # std deviation of parameter noise
-    "num_rollouts": 32,  # number of perturbs to try
+    "num_rollouts": 128,  # number of perturbs to try
     "rollouts_used": 32,  # number of perturbs to keep in gradient estimate
     "num_workers": 2,
     "sgd_stepsize": 0.01,  # sgd step-size
