@@ -13,16 +13,19 @@ class HumanBiasAction(Middleware):
     임의로 사람이 정한 행동을 open loop 하게 출력
     '''
 
-    def __init__(self, env, T):
+    def __init__(self, env, T, multiplier=0.5):
         super().__init__(env)
         self.T = T
+        self.multiplier = multiplier
 
     def get_bias(self, t):
-        ank_pitch = 30
-        hip_pitch = 60
-        hip_roll  = 10
-        knee      = 45
-        sho_pitch = 45
+        m = self.multiplier
+
+        ank_pitch = 30.0 * m
+        hip_pitch = 60.0 * m
+        hip_roll  = 10.0 * m
+        knee      = 45.0 * m
+        sho_pitch = 45.0 * m
 
         return np.array([
             0, # head_tilt 0
