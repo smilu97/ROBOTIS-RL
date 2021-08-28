@@ -45,7 +45,6 @@ class OP3Env(gym.Env):
         self.human_bias = human_bias
         self.step_size = step_size
         self.num_mod = len(op3c.op3_module_names)
-        self.T = 1.0
 
         self.action_bias = np.array(op3c.joint_bias) / 180 * np.pi
         self.action_range = np.array(op3c.joint_ranges) / 180 * np.pi
@@ -63,7 +62,7 @@ class OP3Env(gym.Env):
             ExponentialMove(self, params.action_modify_rate),
             Multiply(self, self.action_range),
             Add(self, self.action_bias),
-            HumanBiasAction(self, T=self.T) if human_bias else None,
+            HumanBiasAction(self, T=1.0) if human_bias else None,
             MinMaxClip(self, -np.pi/2, np.pi/2),
         ]
 
@@ -94,9 +93,8 @@ class OP3Env(gym.Env):
         self.efforts    = [joint_dict[name][2] for name in op3c.op3_obs_module_names]
 
         imu = serialize_imu(self.op3.imu.latest)
-        
-        t = 2 * np.pi * self.t / self.T
-        return np.concatenate([self.positions, imu, [np.sin(t), np.cos(t)]])
+
+        return np.concatenate([self.positions, imu])
     
     def count_stuck(self, obs):
         position = obs[:self.num_mod]
