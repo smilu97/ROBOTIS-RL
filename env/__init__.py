@@ -12,6 +12,9 @@ from .middlewares.exp_move import ExponentialMove
 from .middlewares.map_leg_action import MapLegAction
 from .middlewares.minmax_clip import MinMaxClip
 from .middlewares.human_bias_action import HumanBiasAction
+from .middlewares.trajectory_gen import TrajectoryGenerator
+from .middlewares.orthogonal_ankle import OrthogonalAnkle
+from .middlewares.orthogonal_knee import OrthogonalKnee
 
 progress_bonus = params.progress_bonus
 accel_bonus = params.accel_bonus
@@ -53,17 +56,19 @@ class OP3Env(gym.Env):
         self.op3 = Op3Controller(random_port=random_port)
         self.reset_variables()
 
-        self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(12,), dtype=np.float32)
-        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(24,), dtype=np.float32)
+        self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(48,), dtype=np.float32)
+        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(34,), dtype=np.float32)
 
         self.action_middlewares = [
+            TrajectoryGenerator(self, 12),
             MapLegAction(self),
-            MinMaxClip(self, -1.0, 1.0),
-            ExponentialMove(self, params.action_modify_rate),
             Multiply(self, self.action_range),
             Add(self, self.action_bias),
-            HumanBiasAction(self, T=1.0) if human_bias else None,
-            MinMaxClip(self, -np.pi/2, np.pi/2),
+            HumanBiasAction(self, T=1.5) if human_bias else None,
+            # ExponentialMove(self, params.action_modify_rate),
+            # OrthogonalKnee(self),
+            # OrthogonalAnkle(self),
+            MinMaxClip(self, -1.5, 1.5)
         ]
 
         if not use_bias:
@@ -79,6 +84,8 @@ class OP3Env(gym.Env):
         self.op3.render(**kwargs)
     
     def get_observation(self):
+        self.op3.joint_states.wait()
+
         joint_states = self.op3.joint_states.latest
         joint_dict = {}
         if joint_states is not None:
@@ -94,7 +101,12 @@ class OP3Env(gym.Env):
 
         imu = serialize_imu(self.op3.imu.latest)
 
-        return np.concatenate([self.positions, imu])
+        t = self.t / 1.5
+        t -= np.floor(t)
+
+        tg_pi = self.action_middlewares[0].pi
+
+        return np.concatenate([self.positions, tg_pi, imu])
     
     def count_stuck(self, obs):
         position = obs[:self.num_mod]
@@ -113,7 +125,7 @@ class OP3Env(gym.Env):
         # accel = ddx * accel_bonus
         progress = dx * progress_bonus
         # height = position.z *.height_bonus
-        alive = -5.0 if done else alive_bonus
+        alive = -50.0 if done else alive_bonus
         # outroute = abs(position.y) * outroute_cost
         # velocity = np.sum(np.abs(obs[self.num_mod : 2*self.num_mod])) * velocity_cost
         effort = np.sum(np.abs(self.efforts)) * effort_cost
@@ -136,10 +148,9 @@ class OP3Env(gym.Env):
         return 0.0
 
     def step(self, action):
-        action = apply_middlewares(action, self.action_middlewares)
-        
-        self.op3.act(action)
-        self.op3.iterate(10) # 200 Hz
+
+        self.op3.act(apply_middlewares(action, self.action_middlewares))
+        self.op3.iterate(25) # 200 Hz
 
         position = self.get_body_position()
         done = self.get_done(position)
@@ -149,7 +160,7 @@ class OP3Env(gym.Env):
             raise Exception('robot broken down!')
             
         reward = self.get_reward(obs, position, done)
-        self.t += 0.005
+        self.t += 0.025
 
         if self.print_rewards and done:
             print('rewards:', self.reward_debug)
