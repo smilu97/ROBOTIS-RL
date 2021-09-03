@@ -30,7 +30,7 @@ class IterateProxy(RosProxy):
         self.target_clock = 0
     
     def __call__(self, n):
-        self.target_clock = self.last_clock + n * 500000
+        self.target_clock = self.last_clock + n * 1000000
         req = StepRequest()
         req.iterations = n
         self.clock_event.clear()
