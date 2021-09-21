@@ -15,6 +15,7 @@ from .middlewares.human_bias_action import HumanBiasAction
 from .middlewares.trajectory_gen import TrajectoryGenerator
 from .middlewares.orthogonal_ankle import OrthogonalAnkle
 from .middlewares.orthogonal_knee import OrthogonalKnee
+from .middlewares.torque_like import TorqueLike
 
 progress_bonus = params.progress_bonus
 accel_bonus = params.accel_bonus
@@ -56,16 +57,16 @@ class OP3Env(gym.Env):
         self.op3 = Op3Controller(random_port=random_port)
         self.reset_variables()
 
-        self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(48,), dtype=np.float32)
-        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(34,), dtype=np.float32)
+        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(38,), dtype=np.float32)
+        self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(14,), dtype=np.float32)
 
         self.action_middlewares = [
-            TrajectoryGenerator(self, 12),
+            # TrajectoryGenerator(self, 14),
             MapLegAction(self),
             Multiply(self, self.action_range),
             Add(self, self.action_bias),
             HumanBiasAction(self, T=1.5) if human_bias else None,
-            # ExponentialMove(self, params.action_modify_rate),
+            ExponentialMove(self, params.action_modify_rate),
             # OrthogonalKnee(self),
             # OrthogonalAnkle(self),
             MinMaxClip(self, -1.5, 1.5)
@@ -96,17 +97,14 @@ class OP3Env(gym.Env):
                     joint_states.effort[index] * 0.05,
                 )
         self.positions  = np.array([joint_dict[name][0] for name in op3c.op3_obs_module_names], dtype=np.float32)
-        # velocities = np.array([joint_dict[name][1] for name in op3c.op3_obs_module_names])
+        velocities = np.array([joint_dict[name][1] for name in op3c.op3_obs_module_names])
         self.efforts    = [joint_dict[name][2] for name in op3c.op3_obs_module_names]
 
         imu = serialize_imu(self.op3.imu.latest)
 
-        t = self.t / 1.5
-        t -= np.floor(t)
+        # tg_pi = self.action_middlewares[0].pi
 
-        tg_pi = self.action_middlewares[0].pi
-
-        return np.concatenate([self.positions, tg_pi, imu])
+        return np.concatenate([self.positions, velocities, imu])
     
     def count_stuck(self, obs):
         position = obs[:self.num_mod]
@@ -149,8 +147,12 @@ class OP3Env(gym.Env):
 
     def step(self, action):
 
-        self.op3.act(apply_middlewares(action, self.action_middlewares))
-        self.op3.iterate(25) # 200 Hz
+        for _ in range(10):
+            self.op3.act(apply_middlewares(action, self.action_middlewares))
+            self.op3.joint_states.updated = False
+
+            self.op3.iterate(10)
+            self.t += 0.01
 
         position = self.get_body_position()
         done = self.get_done(position)
@@ -160,7 +162,6 @@ class OP3Env(gym.Env):
             raise Exception('robot broken down!')
             
         reward = self.get_reward(obs, position, done)
-        self.t += 0.025
 
         if self.print_rewards and done:
             print('rewards:', self.reward_debug)

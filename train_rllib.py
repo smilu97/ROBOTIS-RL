@@ -13,9 +13,9 @@ import gym
 import pybulletgym
 
 def env_creator(env_config):
-    return OP3Env(use_bias=False, human_bias=True)
+    return OP3Env(use_bias=True, human_bias=False)
 
-trainer_name = 'ars'
+trainer_name = 'sac'
 
 config = {
     'ppo': ppo_config,
@@ -34,8 +34,8 @@ config["env"] = "RobotisOp3-v0"
 
 tune.run(
     trainer,
-    name='ars_naive',
-    resume=False,
+    name='saclazy2',
+    restore='/home/smilu97/ray_results/saclazy2/SAC_RobotisOp3-v0_ca72d_00000_0_2021-09-15_03-15-50/checkpoint_027840/checkpoint-27840',
     config=config,
     checkpoint_freq=20,
     checkpoint_at_end=True)

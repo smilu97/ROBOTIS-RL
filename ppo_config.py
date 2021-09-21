@@ -19,7 +19,7 @@ config = {
     "batch_mode": "truncate_episodes",
     "observation_filter": "MeanStdFilter",
     "model": {
-        "fcnet_hiddens": [128, 86],
+        "fcnet_hiddens": [180, 120],
         "fcnet_activation": "relu",
         "use_lstm": False
     },

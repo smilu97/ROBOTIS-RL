@@ -18,14 +18,14 @@ class MapLegAction(Middleware):
             payload[4],  # l_hip_yaw 6
             payload[5],  # l_knee 7
             0,  # l_sho_pitch 8
-            0,  # l_sho_roll 9
-            payload[6],  # r_ank_pitch 10
-            payload[7], # r_ank_roll 11
+            payload[6],  # l_sho_roll 9
+            payload[7],  # r_ank_pitch 10
+            payload[8], # r_ank_roll 11
             0, # r_el 12
-            payload[8], # r_hip_pitch 13
-            payload[9], # r_hip_roll 14
-            payload[10], # r_hip_yaw 15
-            payload[11], # r_knee 16
+            payload[9], # r_hip_pitch 13
+            payload[10], # r_hip_roll 14
+            payload[11], # r_hip_yaw 15
+            payload[12], # r_knee 16
             0, # r_sho_pitch 17
-            0, # r_sho_roll 18
+            payload[13], # r_sho_roll 18
         ], dtype=np.float32)

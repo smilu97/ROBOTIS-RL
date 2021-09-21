@@ -10,11 +10,13 @@ class TrajectoryGenerator(Middleware):
         super().__init__(env)
         self.length = length
         self.pi = np.zeros(length)
+        self.t = 0
     
     def reset(self):
         self.pi = np.zeros(self.length)
+        self.t = 0
     
-    def generate(self, pi_add, ce, a_stance, a_lift):
+    def generate(self, pi_add, ce):
         self.pi += pi_add
         self.pi -= np.floor(self.pi / (2 * np.pi)) * (2 * np.pi)
 
@@ -22,6 +24,8 @@ class TrajectoryGenerator(Middleware):
 
         stances = self.pi <  pi_stance
         lifts   = self.pi >= pi_stance
+        a_stance = 1.0
+        a_lift = 1.0
         
         stance_pi = (self.pi / pi_stance) * np.pi
         lift_pi   = (1 + ((self.pi - pi_stance) / ((2 * np.pi) - pi_stance))) * np.pi
@@ -32,10 +36,11 @@ class TrajectoryGenerator(Middleware):
 
     def __call__(self, payload, context):
         n = self.length
+        
+        dt = self.env.t - self.t
+        self.t = self.env.t
 
-        pi_add = (payload[:n] + 1) / 2
-        ce = payload[n:2*n] / 10
-        a_stance = payload[2*n:3*n]
-        a_lift   = payload[3*n:4*n]
+        pi_add = payload[:n] * dt * 30
+        ce = payload[n:2*n] * 0.3
 
-        return self.generate(pi_add, ce, a_stance, a_lift)
+        return self.generate(pi_add, ce)

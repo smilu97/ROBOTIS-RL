@@ -3,13 +3,25 @@
 import ray
 from ray import tune
 from ray.rllib.agents.ppo import PPOTrainer
+from ray.rllib.agents.sac import SACTrainer
 from ray.tune.registry import register_env
-from ppo_config import config
+from ppo_config import config as ppo_config
+from sac_config import config as sac_config
 from env import OP3Env
 import gym
 import pybulletgym
 
-register_env("RobotisOp3-v0", lambda _: OP3Env())
+algo_trainer = 'sac'
+
+config = {
+    'ppo': ppo_config,
+    'sac': sac_config,
+}[algo_trainer]
+
+def env_creator(env_config):
+    return OP3Env(use_bias=True, human_bias=False)
+
+register_env("RobotisOp3-v0", env_creator)
 config["env"] = "RobotisOp3-v0"
 config["num_workers"] = 1
 
@@ -18,7 +30,7 @@ class RayManager:
         self.env_class = OP3Env
         self.config = config
         self.save_dir = '~/.ckp'
-        self.env_config = {"use_bias": True, "human_bias": True}
+        self.env_config = {"use_bias": True, "human_bias": False}
         self.name = 'op3-21052611'
 
     def train(self, stop_criteria):
@@ -29,8 +41,12 @@ class RayManager:
         :return: Return the path to the saved agent (checkpoint) and tune's ExperimentAnalysis object
             See https://docs.ray.io/en/latest/tune/api_docs/analysis.html#experimentanalysis-tune-experimentanalysis
         """
+        trainer = {
+            'ppo': PPOTrainer,
+            'sac': SACTrainer,
+        }[algo_trainer]
         analysis = ray.tune.run(
-            ppo.PPOTrainer,
+            trainer,
             config=self.config,
             local_dir=self.save_dir,
             stop=stop_criteria,
@@ -50,7 +66,11 @@ class RayManager:
         Load a trained RLlib agent from the specified path. Call this before testing a trained agent.
         :param path: Path pointing to the agent's saved checkpoint (only used for RLlib agents)
         """
-        self.agent = PPOTrainer(config=self.config, env=self.env_class)
+        Trainer = {
+            'ppo': PPOTrainer,
+            'sac': SACTrainer,
+        }[algo_trainer]
+        self.agent = Trainer(config=self.config, env=self.env_class)
         self.agent.restore(path)
 
     def test(self, n=-1, render=True):
@@ -76,7 +96,7 @@ class RayManager:
             n -= (n > 0)
 
 def main():
-    path = '/home/smilu97/ray_results/timeloop3/PPO_RobotisOp3-v0_608bb_00000_0_2021-07-29_19-11-44/checkpoint_000840/checkpoint-840'
+    path = '/home/smilu97/tmp/checkpoint-61260'
     ray.init()
     manager = RayManager()
     manager.load(path)
